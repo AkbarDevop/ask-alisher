@@ -126,7 +126,7 @@ export const UI_TEXT = {
     heroTitle: "Ask Alisher",
     heroDescription:
       "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive",
-    poweredBy: "Powered by Gemini · Context from verified Telegram posts, interviews, and public talks",
+    poweredBy: "Powered by Gemini · Context from Telegram posts, interviews, and public talks",
     newChat: "New chat",
     placeholder: "Ask Alisher anything...",
     moreSuggestions: "More suggestions",
@@ -151,7 +151,7 @@ export const UI_TEXT = {
     heroDescription:
       "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive",
     poweredBy:
-      "Gemini asosida · Verifikatsiyalangan Telegram postlari, intervyular va ommaviy chiqishlardan kontekst",
+      "Gemini asosida · Telegram postlari, intervyular va ommaviy chiqishlardan kontekst",
     newChat: "Yangi suhbat",
     placeholder: "Alisherga savol bering...",
     moreSuggestions: "Boshqa savollar",

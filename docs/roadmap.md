@@ -21,15 +21,24 @@
 - Prefer long-form sources for `why`, `how`, `mindset`, and `principles` questions
 - Prefer bio/profile sources for `who are you` and role/background questions
 - Boost first-person chunks and demote generic profile material when it is not relevant
-
-## Next
+- Infer topic tags and use them during reranking
+- Surface supporting source snippets and topic labels in the UI
 
 ### 3. Evaluation set
 
-- Add 30-50 fixed prompts across youth policy, education, entrepreneurship, chess, and biography
-- Track answer quality, source quality, recency handling, and refusal quality
+- Starter regression suite added in `evals/alisher-core.json`
+- CLI runner added in `scripts/run-evals.ts`
+- Current checks cover biography, recency, entrepreneurship, chess, reading, regions, and refusal quality
 
-### 4. Risk management
+## Next
+
+### 4. Expand eval coverage
+
+- Grow the eval set from the starter pack to 30-50 prompts
+- Track answer quality, source quality, recency handling, and refusal quality
+- Add expected source-type coverage and language-specific checks
+
+### 5. Risk management
 
 - Replace in-memory rate limiting with a durable external limiter
 - Add Turnstile or equivalent bot friction

@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "evals:core": "tsx scripts/run-evals.ts --file=evals/alisher-core.json",
     "sync:telegram": "tsx scripts/sync-telegram.ts",
     "sync:telegram:all": "tsx scripts/sync-telegram.ts --all"
   },

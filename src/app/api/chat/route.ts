@@ -4,6 +4,7 @@ import { getSupabase } from "@/lib/supabase";
 import { getEmbedding } from "@/lib/embeddings";
 import { KNOWLEDGE_BASE_MATCH_RPC, KNOWLEDGE_BASE_TABLE } from "@/lib/knowledge-base";
 import { ALISHER_SYSTEM_PROMPT } from "@/lib/prompts";
+import { detectFirstPersonVoice, inferTopics } from "@/lib/topic-tags";
 
 export const maxDuration = 60;
 
@@ -336,6 +337,30 @@ function getChunkIndex(chunk: Chunk): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function getChunkTopics(chunk: Chunk): string[] {
+  const value = chunk.metadata?.topics;
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return inferTopics(chunk.content);
+}
+
+function chunkIsFirstPerson(chunk: Chunk): boolean {
+  const value = chunk.metadata?.is_first_person;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value === "true") return true;
+    if (value === "false") return false;
+  }
+  return detectFirstPersonVoice(chunk.content);
+}
+
 function buildQueryIntent(
   userMessage: string,
   options: { dateScope: QueryDateScope | null; telegramFocused: boolean }
@@ -384,18 +409,13 @@ function getChunkSourceFamily(chunk: Chunk): "telegram" | "longform" | "profile"
   return "other";
 }
 
-function chunkHasFirstPersonVoice(chunk: Chunk): boolean {
-  return /\b(i|i'm|i’ve|i'd|my|me|we|our|us|men|meni|mening|o'zim|biz|bizning|o'ylayman|hisoblayman)\b/iu.test(
-    chunk.content
-  );
-}
-
 function scoreChunkForSelection(
   chunk: Chunk,
   index: number,
   keywords: string[],
   intent: QueryIntent,
-  dateScope: QueryDateScope | null
+  dateScope: QueryDateScope | null,
+  queryTopics: string[]
 ): number {
   const sourceFamily = getChunkSourceFamily(chunk);
   const keywordScore = scoreChunkAgainstKeywords(chunk, keywords) * 4;
@@ -404,10 +424,15 @@ function scoreChunkForSelection(
       ? chunk.similarity * 100
       : Math.max(32 - index, 0);
   const publishedAtMs = getChunkPublishedAtMs(chunk);
+  const chunkTopics = getChunkTopics(chunk);
   const now = Date.now();
   let score = similarityScore + keywordScore;
 
-  if (chunkHasFirstPersonVoice(chunk)) score += 6;
+  if (chunkIsFirstPerson(chunk)) score += 6;
+  if (queryTopics.length > 0) {
+    const overlapCount = queryTopics.filter((topic) => chunkTopics.includes(topic)).length;
+    score += overlapCount * 10;
+  }
 
   if (sourceFamily === "telegram") {
     if (intent.prefersTelegram) score += 18;
@@ -450,12 +475,13 @@ function rerankChunksForQuery(
 
   const keywords = extractKeywords(userMessage);
   const intent = buildQueryIntent(userMessage, options);
+  const queryTopics = inferTopics(userMessage);
 
   return chunks
     .map((chunk, index) => ({
       chunk,
       index,
-      score: scoreChunkForSelection(chunk, index, keywords, intent, options.dateScope),
+      score: scoreChunkForSelection(chunk, index, keywords, intent, options.dateScope, queryTopics),
       publishedAtMs: getChunkPublishedAtMs(chunk),
     }))
     .sort((left, right) => {
@@ -680,7 +706,69 @@ function getSourceTitle(chunk: Chunk): string {
     return "Telegram archive";
   }
 
+  const explicitTitle =
+    readMetadataValue(chunk, "Title") ||
+    readMetadataValue(chunk, "title") ||
+    readMetadataValue(chunk, "Source");
+  if (explicitTitle) {
+    return explicitTitle;
+  }
+
   return SOURCE_LABELS[chunk.source_type] || chunk.source_type;
+}
+
+function stripSourceBoilerplate(chunk: Chunk): string {
+  return chunk.content
+    .split("\n")
+    .filter((line) => {
+      const trimmed = line.trim();
+      return ![
+        "Telegram channel post",
+        "Channel:",
+        "Post ID:",
+        "Date:",
+        "URL:",
+      ].some((prefix) => trimmed.startsWith(prefix));
+    })
+    .join(" ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+function truncateSnippet(text: string, maxLength = 220): string {
+  if (text.length <= maxLength) return text;
+
+  const sliced = text.slice(0, maxLength);
+  const boundary = sliced.lastIndexOf(" ");
+  const trimmed = (boundary > maxLength * 0.6 ? sliced.slice(0, boundary) : sliced).trim();
+  return `${trimmed}...`;
+}
+
+function buildSourceSnippet(chunk: Chunk, userMessage: string): string {
+  const cleaned = stripSourceBoilerplate(chunk);
+  if (!cleaned) return "";
+
+  const keywords = extractKeywords(userMessage).filter((keyword) => keyword.length >= 4);
+  const normalized = cleaned.toLowerCase();
+  const pivot = keywords
+    .map((keyword) => ({ keyword, index: normalized.indexOf(keyword.toLowerCase()) }))
+    .find((match) => match.index >= 0);
+
+  if (!pivot) {
+    return truncateSnippet(cleaned);
+  }
+
+  const start = Math.max(0, pivot.index - 80);
+  const end = Math.min(cleaned.length, pivot.index + pivot.keyword.length + 140);
+  const safeStart = start > 0 ? Math.max(0, cleaned.lastIndexOf(" ", start)) : 0;
+  const nextSpace = cleaned.indexOf(" ", end);
+  const safeEnd = nextSpace === -1 ? cleaned.length : nextSpace;
+  let snippet = cleaned.slice(safeStart, safeEnd).trim();
+
+  if (safeStart > 0) snippet = `...${snippet}`;
+  if (safeEnd < cleaned.length) snippet = `${snippet}...`;
+
+  return truncateSnippet(snippet, 240);
 }
 
 // --- Source type labels ---
@@ -862,7 +950,15 @@ export async function POST(req: Request) {
   ].join("\n");
 
   // Collect unique sources for UI citations
-  const uniqueSources: { id: string; type: string; url: string; title: string }[] = [];
+  const uniqueSources: {
+    id: string;
+    type: string;
+    url: string;
+    title: string;
+    snippet: string;
+    topics: string[];
+    publishedAt?: string;
+  }[] = [];
   const attachSources = shouldAttachSources(selectedChunks, userMessage, {
     dateScope: userDateScope,
     telegramFocused: telegramFocusedQuestion,
@@ -888,6 +984,9 @@ export async function POST(req: Request) {
           type: c.source_type,
           url,
           title: getSourceTitle(c),
+          snippet: buildSourceSnippet(c, userMessage),
+          topics: getChunkTopics(c).slice(0, 3),
+          publishedAt: getChunkPublishedAt(c) || undefined,
         });
       }
 
@@ -906,6 +1005,9 @@ export async function POST(req: Request) {
             sourceType: src.type,
             url: src.url || src.type,
             title: src.title,
+            snippet: src.snippet,
+            topics: src.topics,
+            publishedAt: src.publishedAt,
           });
         }
 

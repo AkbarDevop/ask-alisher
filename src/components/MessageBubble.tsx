@@ -51,6 +51,21 @@ function getSourceActionLabel(type: string): string {
   }
 }
 
+function getTopicLabel(topic: string, lang: Language): string {
+  const labels: Record<string, { en: string; uz: string }> = {
+    youth: { en: "Youth", uz: "Yoshlar" },
+    education: { en: "Education", uz: "Ta'lim" },
+    entrepreneurship: { en: "Entrepreneurship", uz: "Tadbirkorlik" },
+    volunteering: { en: "Volunteering", uz: "Volontyorlik" },
+    chess: { en: "Chess", uz: "Shaxmat" },
+    policy: { en: "Policy", uz: "Siyosat" },
+    reading: { en: "Reading", uz: "Kitobxonlik" },
+    regional_visits: { en: "Regional visits", uz: "Hududiy tashriflar" },
+  };
+
+  return labels[topic]?.[lang] || topic.replace(/_/g, " ");
+}
+
 function shouldSuppressSources(answer: string): boolean {
   const normalized = answer.trim().toLowerCase();
 
@@ -79,6 +94,7 @@ function SourceIcon({ type }: { type: string }) {
   const cls = "h-3.5 w-3.5 shrink-0";
   switch (type) {
     case "youtube":
+    case "youtube_transcript":
       return (
         <svg viewBox="0 0 24 24" className={cls} style={{ color: "#FF0000" }}>
           <path fill="currentColor" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.38.55A3.02 3.02 0 0 0 .5 6.19 31.6 31.6 0 0 0 0 12a31.6 31.6 0 0 0 .5 5.81 3.02 3.02 0 0 0 2.12 2.14c1.88.55 9.38.55 9.38.55s7.5 0 9.38-.55a3.02 3.02 0 0 0 2.12-2.14A31.6 31.6 0 0 0 24 12a31.6 31.6 0 0 0-.5-5.81ZM9.75 15.02V8.98L15.5 12l-5.75 3.02Z" />
@@ -152,7 +168,15 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
     : rawText;
 
   // Extract sources from source-url parts
-  const sources: { id: string; type: string; url: string; title: string }[] = [];
+  const sources: {
+    id: string;
+    type: string;
+    url: string;
+    title: string;
+    snippet?: string;
+    topics: string[];
+    publishedAt?: string;
+  }[] = [];
   if (!isUser && message.parts) {
     for (const part of message.parts) {
       if (part.type === "source-url") {
@@ -162,12 +186,20 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
           sourceType?: string;
           url?: string;
           title?: string;
+          snippet?: string;
+          topics?: string[];
+          publishedAt?: string;
         };
         sources.push({
           id: src.sourceId,
           type: src.sourceType || src.sourceId,
           url: typeof src.url === "string" ? src.url : "",
           title: src.title || src.sourceId,
+          snippet: typeof src.snippet === "string" ? src.snippet : undefined,
+          topics: Array.isArray(src.topics)
+            ? src.topics.filter((topic): topic is string => typeof topic === "string" && topic.length > 0)
+            : [],
+          publishedAt: typeof src.publishedAt === "string" ? src.publishedAt : undefined,
         });
       }
     }
@@ -392,6 +424,30 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
                           >
                             {getSourceTypeLabel(s.type)}
                           </div>
+                          {s.snippet && (
+                            <div
+                              className="mt-1 line-clamp-3 text-[10px] leading-relaxed"
+                              style={{ color: "var(--muted)" }}
+                            >
+                              {s.snippet}
+                            </div>
+                          )}
+                          {s.topics.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {s.topics.map((topic) => (
+                                <span
+                                  key={`${s.id}:${topic}`}
+                                  className="rounded-full px-1.5 py-0.5 text-[9px]"
+                                  style={{
+                                    background: "var(--suggestion-bg)",
+                                    color: "var(--foreground)",
+                                  }}
+                                >
+                                  {getTopicLabel(topic, lang)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <div className="ml-auto flex shrink-0 items-center gap-1 text-[10px]" style={{ opacity: 0.66 }}>
                           <span>{getSourceActionLabel(s.type)}</span>
@@ -425,6 +481,30 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
                           >
                             {getSourceTypeLabel(s.type)}
                           </div>
+                          {s.snippet && (
+                            <div
+                              className="mt-1 line-clamp-3 text-[10px] leading-relaxed"
+                              style={{ color: "var(--muted)" }}
+                            >
+                              {s.snippet}
+                            </div>
+                          )}
+                          {s.topics.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {s.topics.map((topic) => (
+                                <span
+                                  key={`${s.id}:${topic}`}
+                                  className="rounded-full px-1.5 py-0.5 text-[9px]"
+                                  style={{
+                                    background: "var(--suggestion-bg)",
+                                    color: "var(--foreground)",
+                                  }}
+                                >
+                                  {getTopicLabel(topic, lang)}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

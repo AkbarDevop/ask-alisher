@@ -1,5 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
+import {
+  detectFirstPersonVoice,
+  inferTopics,
+} from "../../src/lib/topic-tags";
 
 const DEFAULT_CHUNK_SIZE = 600;
 const DEFAULT_CHUNK_OVERLAP = 100;
@@ -274,3 +278,5 @@ export function parseStructuredDocument(raw: string): {
     body: sanitizeUnicode(lines.slice(index).join("\n").trim()),
   };
 }
+
+export { detectFirstPersonVoice, inferTopics };

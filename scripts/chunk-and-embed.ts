@@ -19,6 +19,8 @@ import * as path from "path";
 import {
   collectFilesRecursive,
   detectLanguageHeuristic,
+  detectFirstPersonVoice,
+  inferTopics,
   parseStructuredDocument,
   chunkText,
   loadLocalEnv,
@@ -272,7 +274,13 @@ async function main() {
         source_type: sourceType,
         source_url: sourceUrl,
         language,
-        metadata: { file, chunk_index: i + j, ...structured.metadata },
+        metadata: {
+          file,
+          chunk_index: i + j,
+          topics: inferTopics(chunk),
+          is_first_person: detectFirstPersonVoice(chunk),
+          ...structured.metadata,
+        },
       }));
 
       await withRetry("Insert batch", async () => {

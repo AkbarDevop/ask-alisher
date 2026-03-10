@@ -27,6 +27,9 @@ type SourceUrlPart = {
   sourceType?: string;
   url?: string;
   title?: string;
+  snippet?: string;
+  topics?: string[];
+  publishedAt?: string;
 };
 
 const DEFAULT_GA_MEASUREMENT_IDS = ["G-BWTQB4SFP4", "G-2XNF6BSJG8"];
@@ -284,7 +287,16 @@ export function ChatInterface() {
           if (!payload || payload === "[DONE]") return;
 
           const event = JSON.parse(payload) as
-            | { type: "source-url"; sourceId: string; sourceType?: string; url?: string; title?: string }
+            | {
+                type: "source-url";
+                sourceId: string;
+                sourceType?: string;
+                url?: string;
+                title?: string;
+                snippet?: string;
+                topics?: string[];
+                publishedAt?: string;
+              }
             | { type: "text-start"; id: string }
             | { type: "text-delta"; id: string; delta: string }
             | { type: string };
@@ -301,6 +313,9 @@ export function ChatInterface() {
                   sourceType: event.sourceType,
                   url: event.url,
                   title: event.title,
+                  snippet: event.snippet,
+                  topics: event.topics,
+                  publishedAt: event.publishedAt,
                 },
               ];
               syncAssistantMessage();
