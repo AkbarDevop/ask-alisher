@@ -35,7 +35,14 @@ function pushAnalyticsEvent(event: string, payload: AnalyticsPayload = {}) {
     dataLayer?: Array<Record<string, unknown>>;
   };
   windowWithDataLayer.dataLayer = windowWithDataLayer.dataLayer || [];
-  windowWithDataLayer.dataLayer.push({ event, ...payload });
+  windowWithDataLayer.dataLayer.push({
+    event,
+    analytics_app: "ask-alisher",
+    analytics_persona: "alisher_sadullaev",
+    analytics_subject: "Alisher Sadullaev",
+    analytics_hostname: window.location.hostname,
+    ...payload,
+  });
 }
 
 function getMessageText(message: UIMessage): string {
