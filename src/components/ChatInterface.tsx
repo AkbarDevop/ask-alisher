@@ -29,6 +29,16 @@ type SourceUrlPart = {
   title?: string;
 };
 
+const DEFAULT_GA_MEASUREMENT_IDS = ["G-BWTQB4SFP4", "G-2XNF6BSJG8"];
+const GA_MEASUREMENT_IDS = (
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_IDS ||
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ||
+  DEFAULT_GA_MEASUREMENT_IDS.join(",")
+)
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+
 function pushAnalyticsEvent(event: string, payload: AnalyticsPayload = {}) {
   if (typeof window === "undefined") return;
   const eventPayload = {
@@ -47,7 +57,12 @@ function pushAnalyticsEvent(event: string, payload: AnalyticsPayload = {}) {
     event,
     ...eventPayload,
   });
-  windowWithAnalytics.gtag?.("event", event, eventPayload);
+  GA_MEASUREMENT_IDS.forEach((measurementId) => {
+    windowWithAnalytics.gtag?.("event", event, {
+      ...eventPayload,
+      send_to: measurementId,
+    });
+  });
 }
 
 function getMessageText(message: UIMessage): string {

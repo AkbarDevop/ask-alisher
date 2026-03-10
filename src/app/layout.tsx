@@ -81,9 +81,14 @@ window.gtag = window.gtag || gtag;
 gtag('js', new Date());
 gtag('set', {
   page_path: window.location.pathname,
-  page_title: document.title
+  page_title: document.title,
+  page_location: window.location.href
 });
-${GA_MEASUREMENT_IDS.map((id) => `gtag('config', '${id}');`).join("\n")}`}
+${GA_MEASUREMENT_IDS.map((id) => `gtag('config', '${id}', { send_page_view: false });`).join("\n")}
+${GA_MEASUREMENT_IDS.map(
+  (id) =>
+    `gtag('event', 'page_view', { send_to: '${id}', page_path: window.location.pathname, page_title: document.title, page_location: window.location.href });`
+).join("\n")}`}
         </Script>
         <Script id="gtm-init" strategy="afterInteractive">
           {`window.dataLayer = window.dataLayer || [];
