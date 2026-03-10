@@ -530,6 +530,19 @@ function shouldAttachSources(
     return true;
   }
 
+  const intent = buildQueryIntent(userMessage, options);
+  if (intent.prefersBiography || intent.prefersLongForm) {
+    return true;
+  }
+
+  const queryTopics = inferTopics(userMessage);
+  if (
+    queryTopics.length > 0 &&
+    chunks.some((chunk) => getChunkTopics(chunk).some((topic) => queryTopics.includes(topic)))
+  ) {
+    return true;
+  }
+
   const keywords = extractKeywords(userMessage)
     .filter((keyword) => keyword.length >= 4)
     .slice(0, 6);
