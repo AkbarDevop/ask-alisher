@@ -397,7 +397,7 @@ export function ChatInterface() {
     );
     if (hasAssistantText) {
       hadAssistantResponseRef.current = true;
-      pushAnalyticsEvent("askpaiziev_first_response", {
+      pushAnalyticsEvent("askalisher_first_response", {
         language: lang,
       });
     }
@@ -407,7 +407,7 @@ export function ChatInterface() {
   useEffect(() => {
     if (!restoredRef.current) return;
     localStorage.setItem("ask-alisher-lang", lang);
-    pushAnalyticsEvent("askpaiziev_language_change", { language: lang });
+    pushAnalyticsEvent("askalisher_language_change", { language: lang });
   }, [lang]);
 
   // Show thinking indicator shortly after submission, hide once text appears
@@ -432,7 +432,7 @@ export function ChatInterface() {
     [25, 50, 75, 90].forEach((threshold) => {
       if (scrollPercent >= threshold && !seenScrollDepthRef.current.has(threshold)) {
         seenScrollDepthRef.current.add(threshold);
-        pushAnalyticsEvent("askpaiziev_scroll_depth", {
+        pushAnalyticsEvent("askalisher_scroll_depth", {
           scroll_percent: threshold,
           language: latestLangRef.current,
           message_count: latestMessageCountRef.current,
@@ -470,7 +470,7 @@ export function ChatInterface() {
     const checkpointsInSeconds = [30, 60, 180];
     engagementTimersRef.current = checkpointsInSeconds.map((seconds) =>
       setTimeout(() => {
-        pushAnalyticsEvent("askpaiziev_engaged_time", {
+        pushAnalyticsEvent("askalisher_engaged_time", {
           engaged_seconds: seconds,
           language: latestLangRef.current,
           message_count: latestMessageCountRef.current,
@@ -485,7 +485,7 @@ export function ChatInterface() {
   useEffect(() => {
     const handlePageHide = () => {
       const secondsSpent = Math.round((Date.now() - sessionStartMsRef.current) / 1000);
-      pushAnalyticsEvent("askpaiziev_session_time", {
+      pushAnalyticsEvent("askalisher_session_time", {
         seconds_spent: secondsSpent,
         language: latestLangRef.current,
         message_count: latestMessageCountRef.current,
@@ -515,7 +515,7 @@ export function ChatInterface() {
     lastPromptSourceRef.current = "typed";
     responseStartMsRef.current = performance.now();
     responseTrackedRef.current = false;
-    pushAnalyticsEvent("askpaiziev_prompt_submit", {
+    pushAnalyticsEvent("askalisher_prompt_submit", {
       language: lang,
       prompt_length: text.trim().length,
       source: "typed",
@@ -549,7 +549,7 @@ export function ChatInterface() {
     lastPromptSourceRef.current = "retry";
     responseStartMsRef.current = performance.now();
     responseTrackedRef.current = false;
-    pushAnalyticsEvent("askpaiziev_retry_click", {
+    pushAnalyticsEvent("askalisher_retry_click", {
       language: lang,
       prompt_length: lastFailedInput.trim().length,
     });
@@ -590,7 +590,7 @@ export function ChatInterface() {
     lastPromptSourceRef.current = "suggested";
     responseStartMsRef.current = performance.now();
     responseTrackedRef.current = false;
-    pushAnalyticsEvent("askpaiziev_prompt_submit", {
+    pushAnalyticsEvent("askalisher_prompt_submit", {
       language: lang,
       prompt_length: question.trim().length,
       source: "suggested",
@@ -607,7 +607,7 @@ export function ChatInterface() {
     setTheme(next);
     document.documentElement.dataset.theme = next;
     localStorage.setItem("ask-alisher-theme", next);
-    pushAnalyticsEvent("askpaiziev_theme_toggle", { theme: next });
+    pushAnalyticsEvent("askalisher_theme_toggle", { theme: next });
   }, [theme]);
 
   const scrollToBottom = useCallback(() => {
@@ -620,7 +620,7 @@ export function ChatInterface() {
   const handleNewChat = () => {
     abortControllerRef.current?.abort();
     clearError();
-    pushAnalyticsEvent("askpaiziev_new_chat", {
+    pushAnalyticsEvent("askalisher_new_chat", {
       language: lang,
       message_count: messages.length,
     });
@@ -634,7 +634,7 @@ export function ChatInterface() {
   };
 
   useEffect(() => {
-    pushAnalyticsEvent("askpaiziev_view", {
+    pushAnalyticsEvent("askalisher_view", {
       page_path: window.location.pathname,
       page_title: document.title,
       language: lang,
@@ -647,7 +647,7 @@ export function ChatInterface() {
     const hasFirstToken = status === "streaming" && lastAssistantText.trim().length > 0;
     if (!hasFirstToken) return;
     const responseTimeMs = Math.round(performance.now() - responseStartMsRef.current);
-    pushAnalyticsEvent("askpaiziev_response_time", {
+    pushAnalyticsEvent("askalisher_response_time", {
       response_time_ms: responseTimeMs,
       source: lastPromptSourceRef.current,
       language: latestLangRef.current,
@@ -660,7 +660,7 @@ export function ChatInterface() {
   useEffect(() => {
     if (!error || responseStartMsRef.current === null) return;
     const responseTimeMs = Math.round(performance.now() - responseStartMsRef.current);
-    pushAnalyticsEvent("askpaiziev_response_error", {
+    pushAnalyticsEvent("askalisher_response_error", {
       response_time_ms: responseTimeMs,
       error_type: getErrorType(error),
       source: lastPromptSourceRef.current,
@@ -672,7 +672,7 @@ export function ChatInterface() {
   }, [error]);
 
   const handleOutboundClick = useCallback((url: string, linkText: string) => {
-    pushAnalyticsEvent("askpaiziev_outbound_click", {
+    pushAnalyticsEvent("askalisher_outbound_click", {
       link_url: url,
       link_text: linkText,
       page_path: window.location.pathname,
