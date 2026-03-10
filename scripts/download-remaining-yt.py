@@ -1,31 +1,34 @@
 """
-Starter transcript downloader for public Alisher Sadullaev videos.
+Manifest-driven transcript downloader for public Alisher Sadullaev videos.
 
 Run:
   python3 scripts/download-remaining-yt.py
-
-It downloads a small set of high-signal interviews/talks into data/youtube/.
-Expand VIDEOS as you discover more public material.
+  python3 scripts/download-remaining-yt.py --priority high
+  python3 scripts/download-remaining-yt.py --limit 5
 """
 
-from youtube_transcript_api import YouTubeTranscriptApi
+import argparse
+import json
 import os
 import time
+from youtube_transcript_api import YouTubeTranscriptApi
 
 api = YouTubeTranscriptApi()
 OUTDIR = os.path.join(os.path.dirname(__file__), "..", "data", "youtube")
+MANIFEST = os.path.join(os.path.dirname(__file__), "alisher-video-manifest.json")
 os.makedirs(OUTDIR, exist_ok=True)
 
-VIDEOS = {
-    "Ie4jP-wGKBA": ("The power of positive attitude", "TEDx Talks"),
-    "woGHbTfjIJA": ('"Chess is becoming like football in Uzbekistan"', "FIDE chess"),
-    "Hv0FCYfztBs": ("Stanford kundaligi", "Millat Umidi by Umidjon Ishmukhamedov"),
-    "yMDQjDpr8Yw": ("IELTS imtihonidan 8 ball olgan eng yosh Senator", "MFaktorUz"),
-    "eZWmh98Ex60": ("Uyini sotgani, poytaxtga kelishi va hayotdagi printsipi haqida", "Qalampir UZ"),
-    "zFnSP_evOFg": ('"Qishloqqa ham kelasizmi, Alisher Sa\'dullayev?"', "Alisher Sadullaev"),
-    "I9JhGpfrwog": ('"Nahotki Alisher aka?"', "Alisher Sadullaev"),
-    "BfcCoXlP83o": ("1093", "Alisher Sadullaev"),
-}
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--priority", choices=["all", "high", "medium"], default="all")
+    parser.add_argument("--limit", type=int, default=0)
+    return parser.parse_args()
+
+
+def load_manifest():
+    with open(MANIFEST, "r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def pick_transcript(video_id):
@@ -38,15 +41,27 @@ def pick_transcript(video_id):
     return transcripts[0]
 
 
+args = parse_args()
+videos = load_manifest()
+if args.priority != "all":
+    videos = [video for video in videos if video.get("priority") == args.priority]
+
 existing = {f.replace(".txt", "") for f in os.listdir(OUTDIR) if f.endswith(".txt")}
-to_download = {k: v for k, v in VIDEOS.items() if k not in existing}
+to_download = [video for video in videos if video["id"] not in existing]
+if args.limit > 0:
+    to_download = to_download[: args.limit]
 
 print(f"Already have {len(existing)} transcript file(s), need {len(to_download)} more.\n")
 
 success = 0
 skipped = []
 
-for index, (video_id, (title, channel)) in enumerate(to_download.items(), start=1):
+for index, video in enumerate(to_download, start=1):
+    video_id = video["id"]
+    title = video["title"]
+    channel = video["channel"]
+    kind = video.get("kind", "interview")
+
     try:
         transcript = pick_transcript(video_id)
         if transcript is None:
@@ -57,12 +72,13 @@ for index, (video_id, (title, channel)) in enumerate(to_download.items(), start=
         entries = transcript.fetch()
         text = "\n".join(snippet.text for snippet in entries)
 
-        with open(os.path.join(OUTDIR, f"{video_id}.txt"), "w", encoding="utf-8") as f:
-            f.write(f'Source: YouTube — Alisher Sadullaev on {channel} — "{title}"\n')
-            f.write(f"URL: https://www.youtube.com/watch?v={video_id}\n")
-            f.write(f"Channel: {channel}\n")
-            f.write(f"Language: {transcript.language_code}\n\n")
-            f.write(text)
+        with open(os.path.join(OUTDIR, f"{video_id}.txt"), "w", encoding="utf-8") as handle:
+            handle.write(f'Source: YouTube — Alisher Sadullaev on {channel} — "{title}"\n')
+            handle.write(f"URL: https://www.youtube.com/watch?v={video_id}\n")
+            handle.write(f"Channel: {channel}\n")
+            handle.write(f"Kind: {kind}\n")
+            handle.write(f"Language: {transcript.language_code}\n\n")
+            handle.write(text)
 
         success += 1
         print(f"  OK [{index}/{len(to_download)}] {title[:50]}... ({len(text):,} chars)")
@@ -76,6 +92,6 @@ print(f"\nDone: {success}/{len(to_download)} downloaded")
 if skipped:
     print("Skipped:", ", ".join(skipped))
 
-print("\nThen re-run ingestion:")
+print("\nThen ingest only the YouTube updates:")
 print("  cd /Users/akbar/Desktop/ask-alisher")
-print("  source <(grep -v '^#' .env.local | grep '=' | sed 's/^/export /') && npx tsx scripts/chunk-and-embed.ts")
+print("  source <(grep -v '^#' .env.local | grep '=' | sed 's/^/export /') && npx tsx scripts/chunk-and-embed.ts --prefix=youtube/ --skip-clear")

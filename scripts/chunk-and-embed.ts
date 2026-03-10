@@ -157,6 +157,9 @@ async function main() {
   if (args.help === true || args.h === true) {
     console.log("Usage: npx tsx scripts/chunk-and-embed.ts");
     console.log(`Reads all .txt/.md files under data/, generates embeddings, and rebuilds ${KNOWLEDGE_BASE_TABLE}.`);
+    console.log("Optional flags:");
+    console.log("  --prefix=youtube/      Only process files under a path prefix relative to data/");
+    console.log("  --skip-clear           Preserve the table and replace only matching source rows");
     return;
   }
 
@@ -171,27 +174,40 @@ async function main() {
     return;
   }
 
+  const prefixFilter =
+    typeof args.prefix === "string" && args.prefix.trim().length > 0
+      ? args.prefix.trim().replace(/\\/g, "/")
+      : null;
+  const shouldClearAll = args["skip-clear"] !== true && !prefixFilter;
   const allFiles = collectFilesRecursive(DATA_DIR);
+  const files = prefixFilter
+    ? allFiles.filter((filePath) =>
+        path.relative(DATA_DIR, filePath).replace(/\\/g, "/").startsWith(prefixFilter)
+      )
+    : allFiles;
 
-  if (allFiles.length === 0) {
+  if (files.length === 0) {
     console.log("No .txt or .md files found in data/ directory.");
     return;
   }
 
-  console.log(`Found ${allFiles.length} file(s) to process.\n`);
+  console.log(`Found ${files.length} file(s) to process.\n`);
 
-  // Clear existing data to avoid duplicates on re-ingestion
-  console.log(`Clearing existing rows from ${KNOWLEDGE_BASE_TABLE}...`);
-  const { error: delError } = await supabase.from(KNOWLEDGE_BASE_TABLE).delete().gte("id", 0);
-  if (delError) {
-    console.error(`Warning: could not clear existing data: ${delError.message}`);
+  if (shouldClearAll) {
+    console.log(`Clearing existing rows from ${KNOWLEDGE_BASE_TABLE}...`);
+    const { error: delError } = await supabase.from(KNOWLEDGE_BASE_TABLE).delete().gte("id", 0);
+    if (delError) {
+      console.error(`Warning: could not clear existing data: ${delError.message}`);
+    } else {
+      console.log(`Cleared existing rows from ${KNOWLEDGE_BASE_TABLE}.\n`);
+    }
   } else {
-    console.log(`Cleared existing rows from ${KNOWLEDGE_BASE_TABLE}.\n`);
+    console.log(`Preserving ${KNOWLEDGE_BASE_TABLE}; matching source rows will be replaced incrementally.\n`);
   }
 
   let totalChunks = 0;
 
-  for (const filePath of allFiles) {
+  for (const filePath of files) {
     const file = path.relative(DATA_DIR, filePath);
     const rawContent = fs.readFileSync(filePath, "utf-8");
     const structured = parseStructuredDocument(rawContent);
@@ -209,6 +225,20 @@ async function main() {
     console.log(
       `Processing: ${file} (type: ${sourceType}, lang: ${language})`
     );
+
+    if (!shouldClearAll) {
+      let deleteQuery = supabase.from(KNOWLEDGE_BASE_TABLE).delete().eq("source_type", sourceType);
+      if (sourceUrl) {
+        deleteQuery = deleteQuery.eq("source_url", sourceUrl);
+      } else {
+        deleteQuery = deleteQuery.contains("metadata", { file });
+      }
+
+      const { error: replaceError } = await deleteQuery;
+      if (replaceError) {
+        console.error(`  Warning: could not replace existing rows for ${file}: ${replaceError.message}`);
+      }
+    }
 
     const chunks = chunkText(content);
     console.log(`  → ${chunks.length} chunks`);

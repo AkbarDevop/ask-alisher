@@ -175,6 +175,15 @@ type Chunk = {
   source_type: string;
   source_url: string;
   metadata?: Record<string, unknown> | null;
+  similarity?: number;
+};
+
+type QueryIntent = {
+  prefersTelegram: boolean;
+  prefersRecent: boolean;
+  prefersLongForm: boolean;
+  prefersBiography: boolean;
+  prefersConcreteUpdates: boolean;
 };
 
 function startOfUtcDay(year: number, month: number, day: number): Date {
@@ -327,6 +336,136 @@ function getChunkIndex(chunk: Chunk): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function buildQueryIntent(
+  userMessage: string,
+  options: { dateScope: QueryDateScope | null; telegramFocused: boolean }
+): QueryIntent {
+  const normalized = userMessage.toLowerCase();
+  const prefersRecent = Boolean(options.dateScope) || RECENT_QUERY_PATTERN.test(normalized);
+  const prefersTelegram = options.telegramFocused || prefersRecent;
+  const prefersBiography =
+    /\b(who are you|who is alisher|biography|bio|background|career|roles?|about you|about him)\b/iu
+      .test(normalized) ||
+    /\bsenator|stanford|federation|agentligi|yoshlar ishlari\b/iu.test(normalized);
+  const prefersLongForm =
+    !prefersTelegram &&
+    /\b(why|how|explain|mindset|principle|principles|approach|strategy|belief|beliefs|lesson|lessons|advice|mistake|mistakes|framework|frameworks)\b/iu
+      .test(normalized);
+  const prefersConcreteUpdates =
+    prefersTelegram ||
+    /\b(which post|what post|what did you say|what did you write|what were you focused on)\b/iu
+      .test(normalized);
+
+  return {
+    prefersTelegram,
+    prefersRecent,
+    prefersLongForm,
+    prefersBiography,
+    prefersConcreteUpdates,
+  };
+}
+
+function getChunkSourceFamily(chunk: Chunk): "telegram" | "longform" | "profile" | "other" {
+  if (["telegram", "telegram_post"].includes(chunk.source_type)) return "telegram";
+  if (
+    [
+      "youtube",
+      "youtube_transcript",
+      "interview",
+      "article",
+      "book",
+      "linkedin",
+      "linkedin_post",
+    ].includes(chunk.source_type)
+  ) {
+    return "longform";
+  }
+  if (["bio", "presentation"].includes(chunk.source_type)) return "profile";
+  return "other";
+}
+
+function chunkHasFirstPersonVoice(chunk: Chunk): boolean {
+  return /\b(i|i'm|i’ve|i'd|my|me|we|our|us|men|meni|mening|o'zim|biz|bizning|o'ylayman|hisoblayman)\b/iu.test(
+    chunk.content
+  );
+}
+
+function scoreChunkForSelection(
+  chunk: Chunk,
+  index: number,
+  keywords: string[],
+  intent: QueryIntent,
+  dateScope: QueryDateScope | null
+): number {
+  const sourceFamily = getChunkSourceFamily(chunk);
+  const keywordScore = scoreChunkAgainstKeywords(chunk, keywords) * 4;
+  const similarityScore =
+    typeof chunk.similarity === "number" && Number.isFinite(chunk.similarity)
+      ? chunk.similarity * 100
+      : Math.max(32 - index, 0);
+  const publishedAtMs = getChunkPublishedAtMs(chunk);
+  const now = Date.now();
+  let score = similarityScore + keywordScore;
+
+  if (chunkHasFirstPersonVoice(chunk)) score += 6;
+
+  if (sourceFamily === "telegram") {
+    if (intent.prefersTelegram) score += 18;
+    if (intent.prefersLongForm) score -= 8;
+    if (intent.prefersRecent && publishedAtMs > 0) {
+      const ageDays = Math.max(0, (now - publishedAtMs) / (24 * 60 * 60 * 1000));
+      score += Math.max(0, 18 - ageDays * 0.2);
+    }
+    if (dateScope && publishedAtMs > 0) {
+      if (publishedAtMs >= dateScope.start.getTime() && publishedAtMs < dateScope.end.getTime()) {
+        score += dateScope.explicit ? 22 : 12;
+      } else if (dateScope.explicit) {
+        score -= 18;
+      }
+    }
+  }
+
+  if (sourceFamily === "longform") {
+    if (intent.prefersLongForm) score += 18;
+    if (intent.prefersBiography) score += 6;
+    if (!intent.prefersTelegram) score += 4;
+    score += Math.min(6, chunk.content.length / 600);
+  }
+
+  if (sourceFamily === "profile") {
+    if (intent.prefersBiography) score += 20;
+    if (intent.prefersConcreteUpdates) score -= 8;
+    if (!intent.prefersBiography && !intent.prefersLongForm) score -= 4;
+  }
+
+  return score;
+}
+
+function rerankChunksForQuery(
+  chunks: Chunk[],
+  userMessage: string,
+  options: { dateScope: QueryDateScope | null; telegramFocused: boolean }
+): Chunk[] {
+  if (chunks.length <= 1) return chunks;
+
+  const keywords = extractKeywords(userMessage);
+  const intent = buildQueryIntent(userMessage, options);
+
+  return chunks
+    .map((chunk, index) => ({
+      chunk,
+      index,
+      score: scoreChunkForSelection(chunk, index, keywords, intent, options.dateScope),
+      publishedAtMs: getChunkPublishedAtMs(chunk),
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      if (right.publishedAtMs !== left.publishedAtMs) return right.publishedAtMs - left.publishedAtMs;
+      return left.index - right.index;
+    })
+    .map((entry) => entry.chunk);
+}
+
 function scoreChunkAgainstKeywords(chunk: Chunk, keywords: string[]): number {
   if (keywords.length === 0) return 0;
 
@@ -454,11 +593,13 @@ async function fetchSupplementalTelegramChunks(
 
 function selectContextChunks(
   chunks: Chunk[],
-  options: { telegramReserve?: number; maxTotal?: number } = {}
+  options: { telegramReserve?: number; longFormReserve?: number; profileReserve?: number; maxTotal?: number } = {}
 ): Chunk[] {
   const deduped: Chunk[] = [];
   const seen = new Set<string>();
   const telegramReserve = options.telegramReserve ?? 2;
+  const longFormReserve = options.longFormReserve ?? 0;
+  const profileReserve = options.profileReserve ?? 0;
   const maxTotal = options.maxTotal ?? 12;
 
   for (const chunk of chunks) {
@@ -471,6 +612,8 @@ function selectContextChunks(
   const selected: Chunk[] = [];
   const sourceCounts = new Map<string, number>();
   const typeCounts = new Map<string, number>();
+  const preferredProfiles = deduped.filter((chunk) => getChunkSourceFamily(chunk) === "profile");
+  const preferredLongForm = deduped.filter((chunk) => getChunkSourceFamily(chunk) === "longform");
   const preferredTelegram = deduped.filter((chunk) =>
     ["telegram", "telegram_post"].includes(chunk.source_type)
   );
@@ -490,8 +633,18 @@ function selectContextChunks(
     return true;
   }
 
+  for (const chunk of preferredProfiles) {
+    if (selected.length >= profileReserve) break;
+    tryAdd(chunk);
+  }
+
+  for (const chunk of preferredLongForm) {
+    if (selected.length >= profileReserve + longFormReserve) break;
+    tryAdd(chunk);
+  }
+
   for (const chunk of preferredTelegram) {
-    if (selected.length >= telegramReserve) break;
+    if (selected.length >= profileReserve + longFormReserve + telegramReserve) break;
     tryAdd(chunk);
   }
 
@@ -659,9 +812,23 @@ export async function POST(req: Request) {
     }
   }
 
+  const queryIntent = buildQueryIntent(userMessage, {
+    dateScope: userDateScope,
+    telegramFocused: telegramFocusedQuestion,
+  });
+
+  chunks = chunks
+    ? rerankChunksForQuery(chunks, userMessage, {
+        dateScope: userDateScope,
+        telegramFocused: telegramFocusedQuestion,
+      })
+    : [];
+
   const selectedChunks = chunks?.length
     ? selectContextChunks(chunks, {
         telegramReserve: userDateScope ? 6 : supplementalTelegramChunks.length > 0 ? 4 : 2,
+        longFormReserve: queryIntent.prefersLongForm ? 3 : 0,
+        profileReserve: queryIntent.prefersBiography ? 2 : 0,
       })
     : [];
 

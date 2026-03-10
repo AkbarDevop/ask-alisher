@@ -93,13 +93,19 @@ Fetch the full public Telegram history:
 npm run sync:telegram:all
 ```
 
-Download a starter set of public YouTube transcripts:
+Download the curated public YouTube manifest:
 
 ```bash
 python3 scripts/download-remaining-yt.py
 ```
 
-Then embed everything under `data/`:
+Ingest only the updated YouTube transcripts without rebuilding the whole corpus:
+
+```bash
+source <(grep -v '^#' .env.local | grep '=' | sed 's/^/export /') && npx tsx scripts/chunk-and-embed.ts --prefix=youtube/ --skip-clear
+```
+
+Or rebuild everything under `data/`:
 
 ```bash
 source <(grep -v '^#' .env.local | grep '=' | sed 's/^/export /') && npx tsx scripts/chunk-and-embed.ts
@@ -118,7 +124,8 @@ Open `http://localhost:3000`.
 - Telegram sync defaults are already pointed at `@alisher_sadullaev`.
 - The UI, prompt pack, and metadata are adapted for Alisher Sadullaev.
 - A small verified bio seed file is included in `data/`.
-- The included YouTube script is only a starter set; expand `VIDEOS` as you add more public interviews.
+- The YouTube downloader now reads from `scripts/alisher-video-manifest.json`.
+- The current roadmap is tracked in `docs/roadmap.md`.
 
 ## Project structure
 
@@ -128,11 +135,14 @@ src/
   components/
   lib/
 scripts/
+  alisher-video-manifest.json
   chunk-and-embed.ts
   fetch-telegram-channel.ts
   import-telegram-posts.ts
   sync-telegram.ts
   download-remaining-yt.py
+docs/
+  roadmap.md
 data/
   bio_alisher_sadullaev.txt
   telegram_posts/
