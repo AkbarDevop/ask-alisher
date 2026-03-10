@@ -33,13 +33,16 @@ type EvalResult = {
 
 const UZBEK_RESPONSE_PREFIX = "[Respond in Uzbek / O'zbek tilida javob bering]\n";
 const REFUSAL_PATTERNS = [
-  "i haven't spoken publicly about",
-  "i have not spoken publicly about",
-  "that's not something i've shared publicly",
-  "that is not something i've shared publicly",
-  "bu haqda ochiq gapirmaganman",
-  "bu mavzu bo'yicha ochiq fikr bildirganim yo'q",
-  "buni omma bilan ulashmaganman",
+  /i haven't spoken publicly about/u,
+  /i have not spoken publicly about/u,
+  /that(?:'s| is) not something i've shared publicly(?: yet)?/u,
+  /i do not have any information on that/u,
+  /i don't have any information on that/u,
+  /i haven't shared(?: my| any)? .*publicly/u,
+  /bu haqda ochiq gapirmaganman/u,
+  /bu mavzu bo'yicha ochiq fikr bildirganim yo'q/u,
+  /buni omma bilan ulashmaganman/u,
+  /bu haqda menda ma'lumot yo'q/u,
 ];
 
 function readEvalFile(filePath: string): EvalSpec[] {
@@ -203,7 +206,7 @@ function evaluateResult(spec: EvalSpec, answer: string, sources: EvalSource[]): 
   }
 
   if (spec.refusal_expected) {
-    const refused = REFUSAL_PATTERNS.some((pattern) => normalizedAnswer.includes(pattern));
+    const refused = REFUSAL_PATTERNS.some((pattern) => pattern.test(normalizedAnswer));
     if (!refused) {
       failures.push("expected a public-information refusal");
     }

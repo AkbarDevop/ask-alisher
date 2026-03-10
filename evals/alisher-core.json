@@ -4,7 +4,6 @@
     "question": "Who are you and what are you focused on?",
     "min_sources": 2,
     "required_topics_any": ["youth", "policy"],
-    "must_include_any": ["youth", "education", "chess", "senator"],
     "require_snippets": true
   },
   {
