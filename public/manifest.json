@@ -1,0 +1,18 @@
+{
+  "name": "Ask Alisher",
+  "short_name": "Ask Alisher",
+  "description": "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, and Stanford GSB Executive",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/alisher.jpg",
+      "sizes": "400x400",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
