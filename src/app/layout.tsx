@@ -4,8 +4,16 @@ import Script from "next/script";
 import "./globals.css";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-N3M3DLLG";
-const GA_MEASUREMENT_ID =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-BWTQB4SFP4";
+const DEFAULT_GA_MEASUREMENT_IDS = ["G-BWTQB4SFP4", "G-2XNF6BSJG8"];
+const GA_MEASUREMENT_IDS = (
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_IDS ||
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ||
+  DEFAULT_GA_MEASUREMENT_IDS.join(",")
+)
+  .split(",")
+  .map((id) => id.trim())
+  .filter(Boolean);
+const PRIMARY_GA_MEASUREMENT_ID = GA_MEASUREMENT_IDS[0];
 
 const inter = Inter({
   variable: "--font-inter",
@@ -63,7 +71,7 @@ export default function RootLayout({
         <link rel="preload" href="/alisher.jpg" as="image" />
         <Script
           id="ga4-loader"
-          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          src={`https://www.googletagmanager.com/gtag/js?id=${PRIMARY_GA_MEASUREMENT_ID}`}
           strategy="afterInteractive"
         />
         <Script id="ga4-init" strategy="afterInteractive">
@@ -71,10 +79,11 @@ export default function RootLayout({
 function gtag(){dataLayer.push(arguments);}
 window.gtag = window.gtag || gtag;
 gtag('js', new Date());
-gtag('config', '${GA_MEASUREMENT_ID}', {
+gtag('set', {
   page_path: window.location.pathname,
   page_title: document.title
-});`}
+});
+${GA_MEASUREMENT_IDS.map((id) => `gtag('config', '${id}');`).join("\n")}`}
         </Script>
         <Script id="gtm-init" strategy="afterInteractive">
           {`window.dataLayer = window.dataLayer || [];
