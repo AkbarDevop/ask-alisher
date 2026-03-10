@@ -31,18 +31,23 @@ type SourceUrlPart = {
 
 function pushAnalyticsEvent(event: string, payload: AnalyticsPayload = {}) {
   if (typeof window === "undefined") return;
-  const windowWithDataLayer = window as typeof window & {
-    dataLayer?: Array<Record<string, unknown>>;
-  };
-  windowWithDataLayer.dataLayer = windowWithDataLayer.dataLayer || [];
-  windowWithDataLayer.dataLayer.push({
-    event,
+  const eventPayload = {
     analytics_app: "ask-alisher",
     analytics_persona: "alisher_sadullaev",
     analytics_subject: "Alisher Sadullaev",
     analytics_hostname: window.location.hostname,
     ...payload,
+  };
+  const windowWithAnalytics = window as typeof window & {
+    dataLayer?: Array<Record<string, unknown>>;
+    gtag?: (command: string, eventName: string, params?: AnalyticsPayload) => void;
+  };
+  windowWithAnalytics.dataLayer = windowWithAnalytics.dataLayer || [];
+  windowWithAnalytics.dataLayer.push({
+    event,
+    ...eventPayload,
   });
+  windowWithAnalytics.gtag?.("event", event, eventPayload);
 }
 
 function getMessageText(message: UIMessage): string {
