@@ -59,7 +59,7 @@ SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-NEXT_PUBLIC_GTM_ID=GTM-K2CFJGHR
+NEXT_PUBLIC_GTM_ID=GTM-N3M3DLLG
 ```
 
 Important:
@@ -67,7 +67,7 @@ Important:
 - This repo is already isolated to the `documents_alisher` table and `match_alisher_documents()` RPC.
 - It can share the same Supabase project as `ask-akmal` without overwriting `documents`.
 - `scripts/chunk-and-embed.ts` rebuilds only the `documents_alisher` corpus.
-- GTM is wired through `NEXT_PUBLIC_GTM_ID`, defaulting to the same container used on `ask-akmal`.
+- GTM is wired through `NEXT_PUBLIC_GTM_ID`, defaulting to `GTM-N3M3DLLG` for the Alisher site.
 
 ## Database
 
