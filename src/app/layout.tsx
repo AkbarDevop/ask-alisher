@@ -5,7 +5,7 @@ import "./globals.css";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID || "GTM-N3M3DLLG";
 const GA_MEASUREMENT_ID =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-2XNF6BSJG8";
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-BWTQB4SFP4";
 
 const inter = Inter({
   variable: "--font-inter",

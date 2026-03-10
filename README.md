@@ -60,7 +60,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_GTM_ID=GTM-N3M3DLLG
-NEXT_PUBLIC_GA_MEASUREMENT_ID=G-2XNF6BSJG8
+NEXT_PUBLIC_GA_MEASUREMENT_ID=G-BWTQB4SFP4
 ```
 
 Important:
@@ -69,7 +69,7 @@ Important:
 - It can share the same Supabase project as `ask-akmal` without overwriting `documents`.
 - `scripts/chunk-and-embed.ts` rebuilds only the `documents_alisher` corpus.
 - GTM is wired through `NEXT_PUBLIC_GTM_ID`, defaulting to `GTM-N3M3DLLG` for the Alisher site.
-- GA4 is wired through `NEXT_PUBLIC_GA_MEASUREMENT_ID`, defaulting to `G-2XNF6BSJG8`.
+- GA4 is wired through `NEXT_PUBLIC_GA_MEASUREMENT_ID`, defaulting to `G-BWTQB4SFP4`.
 
 ## Database
 
