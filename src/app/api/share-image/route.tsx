@@ -8,6 +8,26 @@ export const size = {
   height: 630,
 };
 
+function getLabels(lang: string) {
+  if (lang === "uz") {
+    return {
+      question: "Savol",
+      answer: "Javob",
+      cta: "O'zingiz ham savol bering",
+      shared: "Ulashilgan javob",
+      topics: "Yoshlar, ta'lim, tadbirkorlik, shaxmat",
+    };
+  }
+
+  return {
+    question: "Question",
+    answer: "Answer",
+    cta: "Ask your own question",
+    shared: "Shared answer",
+    topics: "Youth, education, entrepreneurship, chess",
+  };
+}
+
 function cleanQuestion(value: string) {
   return value.replace(/\s+/gu, " ").trim().slice(0, 300);
 }
@@ -31,6 +51,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const question = cleanQuestion(searchParams.get("q") || "");
   const answer = cleanAnswer(searchParams.get("a") || "");
+  const lang = searchParams.get("lang") === "uz" ? "uz" : "en";
+  const labels = getLabels(lang);
 
   return new ImageResponse(
     (
@@ -115,7 +137,7 @@ export async function GET(req: Request) {
                 color: "rgba(255,255,255,0.75)",
               }}
             >
-              Shared answer
+              {labels.shared}
             </div>
           </div>
 
@@ -129,7 +151,7 @@ export async function GET(req: Request) {
                   color: "#bae6fd",
                 }}
               >
-                Question
+                {labels.question}
               </div>
               <div
                 style={{
@@ -163,7 +185,7 @@ export async function GET(req: Request) {
                   color: "#bfdbfe",
                 }}
               >
-                Answer
+                {labels.answer}
               </div>
               <div
                 style={{
@@ -193,7 +215,7 @@ export async function GET(req: Request) {
                   color: "rgba(255,255,255,0.72)",
                 }}
               >
-                Youth, education, entrepreneurship, chess
+                {labels.topics}
               </div>
             </div>
             <div
@@ -209,7 +231,7 @@ export async function GET(req: Request) {
                 fontWeight: 700,
               }}
             >
-              Ask your own question
+              {labels.cta}
             </div>
           </div>
         </div>

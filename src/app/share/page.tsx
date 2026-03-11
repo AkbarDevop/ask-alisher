@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { ShareCardActions } from "@/components/ShareCardActions";
 import { UI_TEXT, type Language } from "@/lib/prompts";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +51,18 @@ function buildShareImageUrl(question: string, answer: string, lang: Language) {
   return `/api/share-image?${params.toString()}`;
 }
 
+function buildSharePageUrl(question: string, answer: string, lang: Language) {
+  const params = new URLSearchParams({
+    q: question,
+    a: answer,
+    lang,
+    utm_source: "share",
+    utm_medium: "organic",
+    utm_campaign: "ask_alisher_answer_share",
+  });
+  return `/share?${params.toString()}`;
+}
+
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
   const params = await searchParams;
   const question = cleanQuestion(getSingleValue(params.q));
@@ -80,7 +94,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       title,
       description,
       type: "article",
-      url: `/share?${new URLSearchParams({ q: question, a: answer, lang }).toString()}`,
+      url: buildSharePageUrl(question, answer, lang),
       siteName: "Ask Alisher",
       images: [
         {
@@ -109,16 +123,26 @@ export default async function SharePage({ searchParams }: PageProps) {
 
   if (!question || !answer) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 text-center">
-        <div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="mb-4 text-sm uppercase tracking-[0.18em] text-slate-500">Ask Alisher</p>
-          <h1 className="mb-3 text-2xl font-semibold text-slate-900">Shared answer unavailable</h1>
-          <p className="mb-6 text-sm leading-6 text-slate-600">
+      <main className="chat-bg flex min-h-screen items-center justify-center px-4">
+        <div
+          className="max-w-md rounded-[28px] border p-8 text-center"
+          style={{
+            background: "var(--ai-bubble)",
+            borderColor: "var(--border)",
+            color: "var(--foreground)",
+          }}
+        >
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--muted)" }}>
+            Ask Alisher
+          </p>
+          <h1 className="mb-3 text-2xl font-semibold">Shared answer unavailable</h1>
+          <p className="mb-6 text-sm leading-6" style={{ color: "var(--muted)" }}>
             This shared link is missing the question or answer preview.
           </p>
           <Link
             href="/"
-            className="inline-flex rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white"
+            className="inline-flex rounded-2xl px-4 py-3 text-sm font-semibold"
+            style={{ background: "var(--user-bubble)", color: "var(--user-text)" }}
           >
             {t.backToHome}
           </Link>
@@ -129,81 +153,147 @@ export default async function SharePage({ searchParams }: PageProps) {
 
   const answerParagraphs = answer.split(/\n{2,}/u).filter(Boolean);
   const askUrl = `/?q=${encodeURIComponent(question)}&lang=${lang}&fresh=1&utm_source=share_card&utm_medium=organic&utm_campaign=ask_alisher_answer_share`;
+  const sharePageUrl = buildSharePageUrl(question, answer, lang);
+  const shareImageUrl = buildShareImageUrl(question, answer, lang);
 
   return (
-    <main
-      className="min-h-screen px-4 py-8 sm:px-6 sm:py-10"
-      style={{
-        background:
-          "radial-gradient(circle at top left, rgba(59,130,246,0.14), transparent 34%), linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%)",
-      }}
-    >
-      <div className="mx-auto flex max-w-4xl flex-col gap-6">
-        <div className="flex items-center justify-between rounded-full border border-sky-100 bg-white/80 px-4 py-2 text-xs text-slate-500 shadow-sm backdrop-blur">
-          <span className="font-semibold tracking-[0.16em] text-slate-700 uppercase">Ask Alisher</span>
-          <span>Shared answer preview</span>
-        </div>
-
-        <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-[0_32px_80px_rgba(15,23,42,0.12)]">
-          <div className="border-b border-slate-200 bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_55%,#22c55e_100%)] px-6 py-8 text-white sm:px-10 sm:py-10">
-            <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em]">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" />
+    <main className="flex min-h-screen flex-col" style={{ background: "var(--background)" }}>
+      <header
+        className="sticky top-0 z-10 backdrop-blur-xl"
+        style={{
+          background: "var(--footer-bar)",
+          borderBottom: "1px solid var(--border)",
+          paddingTop: "env(safe-area-inset-top)",
+        }}
+      >
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3">
+          <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-75">
+            <Image
+              src="/alisher.jpg"
+              alt="Alisher Sadullaev"
+              width={28}
+              height={28}
+              className="rounded-full ring-1 ring-[var(--border)]"
+            />
+            <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--foreground)" }}>
               Ask Alisher
+            </span>
+          </Link>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
+            {t.sharedAnswerPreview}
+          </span>
+        </div>
+      </header>
+
+      <div className="chat-bg flex-1 overflow-y-auto px-3 pb-28 pt-4 sm:px-4 sm:pb-32 sm:pt-6">
+        <div className="mx-auto flex max-w-2xl flex-col gap-5">
+          <div className="hero-glow relative flex flex-col items-center gap-4 pt-6 text-center sm:pt-10">
+            <div className="relative">
+              <Image
+                src="/alisher.jpg"
+                alt="Alisher Sadullaev"
+                width={88}
+                height={88}
+                className="rounded-full ring-1 ring-[var(--border)]"
+              />
+              <div
+                className="animate-pulse-ring absolute inset-0 rounded-full"
+                style={{ border: "1px solid rgba(59, 130, 246, 0.18)" }}
+              />
             </div>
-            <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-sky-100">
-              {t.shareQuestionLabel}
-            </p>
-            <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-balance sm:text-5xl">
-              {question}
-            </h1>
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em]" style={{ color: "var(--muted)" }}>
+                Ask Alisher
+              </p>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl" style={{ color: "var(--foreground)" }}>
+                {question}
+              </h1>
+              <p className="mx-auto max-w-xl text-sm leading-6 sm:text-[15px]" style={{ color: "var(--muted)" }}>
+                {t.sharedAnswerPreview}
+              </p>
+            </div>
           </div>
 
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_280px]">
-            <div className="px-6 py-7 sm:px-10 sm:py-9">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                <span className="h-2 w-2 rounded-full bg-sky-500" />
-                {t.shareAnswerLabel}
-              </div>
-              <div className="space-y-4 text-[15px] leading-7 text-slate-700 sm:text-[17px]">
-                {answerParagraphs.map((paragraph, index) => (
-                  <p key={`${question}:${index}`}>{paragraph}</p>
-                ))}
+          <div className="flex animate-fade-in gap-3">
+            <div className="mt-1 shrink-0">
+              <Image
+                src="/alisher.jpg"
+                alt="Alisher Sadullaev"
+                width={32}
+                height={32}
+                className="rounded-full ring-1 ring-[var(--border)]"
+              />
+            </div>
+            <div className="flex max-w-[92%] flex-col gap-1 sm:max-w-[80%]">
+              <div
+                className="rounded-2xl rounded-tl-sm px-4 py-4 text-[14px] leading-relaxed"
+                style={{
+                  background: "var(--ai-bubble)",
+                  color: "var(--ai-text)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div className="mb-3 flex items-center gap-2 text-[11px]" style={{ color: "var(--muted)" }}>
+                  <span
+                    className="rounded-full px-2 py-0.5"
+                    style={{ background: "var(--suggestion-bg)", color: "var(--foreground)" }}
+                  >
+                    {t.shareQuestionLabel}
+                  </span>
+                  <span>{question}</span>
+                </div>
+                <div className="space-y-4">
+                  {answerParagraphs.map((paragraph, index) => (
+                    <p key={`${question}:${index}`}>{paragraph}</p>
+                  ))}
+                </div>
               </div>
             </div>
-
-            <aside className="flex flex-col justify-between border-t border-slate-200 bg-slate-50 px-6 py-7 lg:border-l lg:border-t-0">
-              <div>
-                <div className="mb-4 rounded-3xl bg-[linear-gradient(160deg,#e0f2fe_0%,#dbeafe_55%,#dcfce7_100%)] p-5 text-slate-800">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    Organic share
-                  </p>
-                  <p className="text-sm leading-6">
-                    Share an interesting question-answer pair, then let the next person jump straight into chat.
-                  </p>
-                </div>
-                <div className="space-y-2 text-sm text-slate-500">
-                  <p>Language: {lang === "uz" ? "Uzbek" : "English"}</p>
-                  <p>Preview mode: rich share card</p>
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-col gap-3">
-                <Link
-                  href={askUrl}
-                  className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
-                >
-                  {t.openSharedChat}
-                </Link>
-                <Link
-                  href="/"
-                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-                >
-                  {t.backToHome}
-                </Link>
-              </div>
-            </aside>
           </div>
-        </section>
+
+          <div
+            className="rounded-2xl border p-4 sm:p-5"
+            style={{
+              background: "var(--suggestion-bg)",
+              borderColor: "var(--border)",
+            }}
+          >
+            <div className="mb-4 flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--muted)" }}>
+                Organic share
+              </p>
+              <p className="text-sm leading-6" style={{ color: "var(--foreground)" }}>
+                Share an interesting question-answer pair, let someone preview it cleanly, then move them straight into chat.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                href={askUrl}
+                className="rounded-2xl px-4 py-3 text-center text-sm font-semibold transition-transform hover:-translate-y-0.5"
+                style={{ background: "var(--user-bubble)", color: "var(--user-text)" }}
+              >
+                {t.openSharedChat}
+              </Link>
+              <Link
+                href="/"
+                className="rounded-2xl border px-4 py-3 text-center text-sm font-semibold transition-colors"
+                style={{
+                  borderColor: "var(--border)",
+                  background: "var(--background)",
+                  color: "var(--foreground)",
+                }}
+              >
+                {t.backToHome}
+              </Link>
+            </div>
+
+            <div className="mt-3">
+              <ShareCardActions lang={lang} shareUrl={sharePageUrl} imageUrl={shareImageUrl} />
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
