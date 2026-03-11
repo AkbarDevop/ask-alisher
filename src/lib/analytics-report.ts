@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { ASK_ALISHER_ANALYTICS_TABLE } from "./analytics";
+import { KNOWLEDGE_BASE_TABLE } from "./knowledge-base";
 
 export type AnalyticsRow = {
   created_at: string;
@@ -28,6 +29,29 @@ export type AnalyticsAlert = {
   detail: string;
   tone: "emerald" | "amber" | "rose" | "slate";
   value?: string;
+};
+
+export type AnalyticsPromptExplorerRow = {
+  id: string;
+  createdAt: string;
+  sessionId: string | null;
+  language: string | null;
+  source: string | null;
+  promptPreview: string | null;
+  promptLength: number | null;
+  hostname: string | null;
+  outcome: "success" | "error" | "retried" | "abandoned" | "pending";
+  responseTimeMs: number | null;
+};
+
+export type AnalyticsFreshnessSummary = {
+  totalChunks: number;
+  sourceBreakdown: AnalyticsCount[];
+  latestTelegramDate: string | null;
+  latestTelegramPostId: string | null;
+  latestTelegramUrl: string | null;
+  uniqueTelegramPosts: number;
+  uniqueYoutubeSources: number;
 };
 
 export type AnalyticsFunnelStep = {
@@ -84,6 +108,10 @@ export type AnalyticsSummary = {
   errorTypes: AnalyticsCount[];
   dailyViews: AnalyticsCount[];
   alerts: AnalyticsAlert[];
+  totalCitationClicks: number;
+  citationDomains: AnalyticsCount[];
+  topClickedSources: AnalyticsCount[];
+  promptExplorer: AnalyticsPromptExplorerRow[];
   funnel: AnalyticsFunnelStep[];
   dailyTrend: AnalyticsDailyTrendPoint[];
   recentEvents: AnalyticsRecentEvent[];
@@ -115,6 +143,22 @@ function toSortedCounts(map: Map<string, number>, limit = 5): AnalyticsCount[] {
 function average(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function parseDateValue(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) return null;
+  return new Date(timestamp).toISOString();
+}
+
+function getUrlHost(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
 }
 
 function buildDailySeed(days: number): AnalyticsDailyTrendPoint[] {
@@ -173,6 +217,78 @@ export async function fetchAnalyticsRows(days: number): Promise<AnalyticsRow[]> 
   return rows;
 }
 
+type KnowledgeBaseRow = {
+  source_type: string;
+  source_url: string | null;
+  metadata: Record<string, unknown> | null;
+};
+
+export async function fetchKnowledgeBaseFreshness(): Promise<AnalyticsFreshnessSummary> {
+  const supabase = getSupabaseServiceRoleClient();
+  const rows: KnowledgeBaseRow[] = [];
+  let from = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from(KNOWLEDGE_BASE_TABLE)
+      .select("source_type, source_url, metadata")
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const page = (data as KnowledgeBaseRow[] | null) ?? [];
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      break;
+    }
+
+    from += pageSize;
+  }
+
+  const sourceTypeMap = new Map<string, number>();
+  const telegramPosts = new Set<string>();
+  const youtubeSources = new Set<string>();
+  let latestTelegramDate: string | null = null;
+  let latestTelegramPostId: string | null = null;
+  let latestTelegramUrl: string | null = null;
+
+  for (const row of rows) {
+    sourceTypeMap.set(row.source_type, (sourceTypeMap.get(row.source_type) || 0) + 1);
+
+    if (row.source_type === "telegram_post") {
+      const postUrl = row.source_url || (typeof row.metadata?.URL === "string" ? row.metadata.URL : null);
+      if (postUrl) telegramPosts.add(postUrl);
+
+      const nextDate = parseDateValue(row.metadata?.Date);
+      if (nextDate && (!latestTelegramDate || nextDate > latestTelegramDate)) {
+        latestTelegramDate = nextDate;
+        latestTelegramPostId = typeof row.metadata?.["Post ID"] === "string" ? row.metadata["Post ID"] : null;
+        latestTelegramUrl = postUrl;
+      }
+    }
+
+    if (row.source_type === "youtube") {
+      const youtubeUrl = row.source_url || (typeof row.metadata?.URL === "string" ? row.metadata.URL : null);
+      if (youtubeUrl) youtubeSources.add(youtubeUrl);
+    }
+  }
+
+  return {
+    totalChunks: rows.length,
+    sourceBreakdown: toSortedCounts(sourceTypeMap, 8),
+    latestTelegramDate,
+    latestTelegramPostId,
+    latestTelegramUrl,
+    uniqueTelegramPosts: telegramPosts.size,
+    uniqueYoutubeSources: youtubeSources.size,
+  };
+}
+
 export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): AnalyticsSummary {
   const uniqueSessions = new Set(rows.map((row) => row.session_id).filter(Boolean));
   const eventCounts = new Map<string, number>();
@@ -182,6 +298,8 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
   const topPrompts = new Map<string, number>();
   const promptLanguageMap = new Map<string, Map<string, number>>();
   const errorTypes = new Map<string, number>();
+  const citationDomains = new Map<string, number>();
+  const clickedSources = new Map<string, number>();
   const dailyViews = new Map<string, number>();
   const dailyTrend = buildDailySeed(days);
   const dailyTrendMap = new Map(dailyTrend.map((point) => [point.date, point]));
@@ -223,6 +341,18 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     if (row.event_name === "askalisher_response_error") {
       incrementCounter(errorTypes, typeof row.metadata?.error_type === "string" ? row.metadata.error_type : null);
       if (dayPoint) dayPoint.responseErrors += 1;
+    }
+
+    if (row.event_name === "askalisher_outbound_click") {
+      incrementCounter(citationDomains, getUrlHost(typeof row.metadata?.link_url === "string" ? row.metadata.link_url : null));
+      incrementCounter(
+        clickedSources,
+        typeof row.metadata?.link_text === "string"
+          ? row.metadata.link_text
+          : typeof row.metadata?.link_url === "string"
+            ? row.metadata.link_url
+            : null
+      );
     }
 
     if (row.event_name === "askalisher_response_time" && typeof row.metadata?.response_time_ms === "number") {
@@ -297,6 +427,64 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
       items: toSortedCounts(items, 4),
     }))
     .sort((a, b) => b.total - a.total);
+
+  const rowsBySession = new Map<string, AnalyticsRow[]>();
+  for (const row of rows) {
+    const key = row.session_id || "unknown";
+    const bucket = rowsBySession.get(key) || [];
+    bucket.push(row);
+    rowsBySession.set(key, bucket);
+  }
+
+  const promptExplorer: AnalyticsPromptExplorerRow[] = [];
+  for (const [sessionId, sessionRows] of rowsBySession.entries()) {
+    const ordered = [...sessionRows].sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+    for (let index = 0; index < ordered.length; index += 1) {
+      const row = ordered[index];
+      if (row.event_name !== "askalisher_prompt_submit") continue;
+
+      const nextPromptIndex = ordered.findIndex(
+        (candidate, candidateIndex) => candidateIndex > index && candidate.event_name === "askalisher_prompt_submit"
+      );
+      const segment = ordered.slice(index + 1, nextPromptIndex === -1 ? ordered.length : nextPromptIndex);
+      const successEvent = segment.find((item) => item.event_name === "askalisher_response_time");
+      const errorEvent = segment.find((item) => item.event_name === "askalisher_response_error");
+      const retryEvent = segment.find((item) => item.event_name === "askalisher_retry_click");
+      const newChatEvent = segment.find((item) => item.event_name === "askalisher_new_chat");
+      let outcome: AnalyticsPromptExplorerRow["outcome"] = "pending";
+
+      if (successEvent) {
+        outcome = "success";
+      } else if (errorEvent) {
+        outcome = "error";
+      } else if (retryEvent) {
+        outcome = "retried";
+      } else if (newChatEvent) {
+        outcome = "abandoned";
+      }
+
+      promptExplorer.push({
+        id: `${sessionId}-${row.created_at}-${index}`,
+        createdAt: row.created_at,
+        sessionId: row.session_id,
+        language: row.language,
+        source: typeof row.metadata?.source === "string" ? row.metadata.source : null,
+        promptPreview: typeof row.metadata?.prompt_preview === "string" ? row.metadata.prompt_preview : null,
+        promptLength: typeof row.metadata?.prompt_length === "number" ? row.metadata.prompt_length : null,
+        hostname: row.hostname,
+        outcome,
+        responseTimeMs:
+          typeof successEvent?.metadata?.response_time_ms === "number"
+            ? successEvent.metadata.response_time_ms
+            : typeof errorEvent?.metadata?.response_time_ms === "number"
+              ? errorEvent.metadata.response_time_ms
+              : null,
+      });
+    }
+  }
+
+  promptExplorer.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const latestDay = dailyTrend[dailyTrend.length - 1] ?? null;
   const priorDays = dailyTrend.slice(0, -1);
@@ -388,6 +576,10 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     errorTypes: toSortedCounts(errorTypes, 5),
     dailyViews: toSortedCounts(dailyViews, days),
     alerts,
+    totalCitationClicks: eventCounts.get("askalisher_outbound_click") || 0,
+    citationDomains: toSortedCounts(citationDomains, 6),
+    topClickedSources: toSortedCounts(clickedSources, 8),
+    promptExplorer: promptExplorer.slice(0, 80),
     funnel,
     dailyTrend,
     recentEvents,

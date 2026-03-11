@@ -39,7 +39,7 @@
 - First-party analytics ingestion added via `/api/analytics/collect`
 - Local reporting script added in `scripts/analytics-report.ts`
 - Protected `/admin/analytics` dashboard added for quick browser-side reporting
-- Dashboard now includes sparkline KPI cards, anomaly flags, trend charts, funnel view, split charts, prompt breakdown by language, a traffic health strip, CSV export, top prompts, and a recent event stream
+- Dashboard now includes sparkline KPI cards, anomaly flags, trend charts, funnel view, split charts, prompt breakdown by language, a traffic health strip, CSV export, top prompts, citation analytics, a prompt explorer, a freshness panel, and a recent event stream
 
 ## Next
 

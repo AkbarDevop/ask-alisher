@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import {
   buildAnalyticsSummary,
   fetchAnalyticsRows,
+  fetchKnowledgeBaseFreshness,
   type AnalyticsCount,
   type AnalyticsDailyTrendPoint,
   type AnalyticsFunnelStep,
@@ -23,6 +24,10 @@ type PageProps = {
   searchParams: Promise<{
     key?: string | string[];
     days?: string | string[];
+    q?: string | string[];
+    promptLanguage?: string | string[];
+    promptSource?: string | string[];
+    promptOutcome?: string | string[];
   }>;
 };
 
@@ -103,6 +108,22 @@ function buildDaysHref(key: string, days: number): string {
 
 function buildExportHref(key: string, days: number): string {
   return `/admin/analytics/export?key=${encodeURIComponent(key)}&days=${days}`;
+}
+
+function buildPromptFilterHref(
+  key: string,
+  days: number,
+  search: string,
+  language: string,
+  source: string,
+  outcome: string
+): string {
+  const params = new URLSearchParams({ key, days: String(days) });
+  if (search) params.set("q", search);
+  if (language) params.set("promptLanguage", language);
+  if (source) params.set("promptSource", source);
+  if (outcome) params.set("promptOutcome", outcome);
+  return `/admin/analytics?${params.toString()}`;
 }
 
 function buildHealthStatus(summary: {
@@ -560,6 +581,79 @@ function AlertCards({
   );
 }
 
+function FreshnessPanel({
+  freshness,
+}: {
+  freshness: {
+    totalChunks: number;
+    sourceBreakdown: AnalyticsCount[];
+    latestTelegramDate: string | null;
+    latestTelegramPostId: string | null;
+    latestTelegramUrl: string | null;
+    uniqueTelegramPosts: number;
+    uniqueYoutubeSources: number;
+  };
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-500">Total chunks</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{formatCompactNumber(freshness.totalChunks)}</p>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-500">Telegram posts</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{formatCompactNumber(freshness.uniqueTelegramPosts)}</p>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-500">YouTube sources</p>
+          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{formatCompactNumber(freshness.uniqueYoutubeSources)}</p>
+        </div>
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-500">Latest Telegram item</p>
+          <p className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
+            {freshness.latestTelegramDate ? formatTimestamp(freshness.latestTelegramDate) : "n/a"}
+          </p>
+          {freshness.latestTelegramPostId ? (
+            <p className="mt-1 text-xs text-slate-500">Post #{freshness.latestTelegramPostId}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[0.75fr_1.25fr]">
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-500">Source mix</p>
+          <div className="mt-4">
+            <SmallList items={freshness.sourceBreakdown} fallback="No source data." />
+          </div>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-sm font-medium text-slate-500">Freshest public source</p>
+          <div className="mt-4 space-y-3">
+            <p className="text-lg font-semibold tracking-tight text-slate-950">
+              {freshness.latestTelegramDate ? formatTimestamp(freshness.latestTelegramDate) : "No dated Telegram rows"}
+            </p>
+            <p className="text-sm leading-6 text-slate-600">
+              This is derived from the newest dated Telegram row inside `documents_alisher`, so you can quickly see whether the knowledge base is stale.
+            </p>
+            {freshness.latestTelegramUrl ? (
+              <a
+                href={freshness.latestTelegramUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Open latest Telegram source
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PromptLanguageBreakdown({
   groups,
 }: {
@@ -583,6 +677,113 @@ function PromptLanguageBreakdown({
           <SmallList items={group.items} fallback="No prompts yet." />
         </div>
       ))}
+    </div>
+  );
+}
+
+function CitationAnalyticsSection({
+  totalClicks,
+  domains,
+  sources,
+}: {
+  totalClicks: number;
+  domains: AnalyticsCount[];
+  sources: AnalyticsCount[];
+}) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[0.55fr_0.45fr_1fr]">
+      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+        <p className="text-sm font-medium text-slate-500">Citation clicks</p>
+        <p className="mt-2 text-4xl font-semibold tracking-tight text-slate-950">{formatCompactNumber(totalClicks)}</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Based on `askalisher_outbound_click` events from source cards and other external links.
+        </p>
+      </div>
+
+      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+        <p className="text-sm font-medium text-slate-500">Clicked domains</p>
+        <div className="mt-4">
+          <DonutChart items={domains} emptyLabel="No citation clicks yet." />
+        </div>
+      </div>
+
+      <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+        <p className="text-sm font-medium text-slate-500">Top clicked sources</p>
+        <div className="mt-4">
+          <SmallList items={sources} fallback="Clicked sources will appear here after users open citations." />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PromptExplorerTable({
+  rows,
+}: {
+  rows: Array<{
+    id: string;
+    createdAt: string;
+    language: string | null;
+    source: string | null;
+    promptPreview: string | null;
+    promptLength: number | null;
+    outcome: "success" | "error" | "retried" | "abandoned" | "pending";
+    responseTimeMs: number | null;
+    hostname: string | null;
+  }>;
+}) {
+  if (rows.length === 0) {
+    return <p className="text-sm text-slate-500">No prompts match the current filters.</p>;
+  }
+
+  const outcomeStyles = {
+    success: "bg-emerald-100 text-emerald-800",
+    error: "bg-rose-100 text-rose-800",
+    retried: "bg-amber-100 text-amber-800",
+    abandoned: "bg-slate-200 text-slate-700",
+    pending: "bg-blue-100 text-blue-800",
+  } as const;
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-left text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 text-slate-500">
+            <th className="pb-3 pr-4 font-medium">Prompt</th>
+            <th className="pb-3 pr-4 font-medium">Lang</th>
+            <th className="pb-3 pr-4 font-medium">Source</th>
+            <th className="pb-3 pr-4 font-medium">Outcome</th>
+            <th className="pb-3 pr-4 font-medium">Latency</th>
+            <th className="pb-3 pr-4 font-medium">When</th>
+            <th className="pb-3 pr-0 font-medium">Host</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="border-b border-slate-100 align-top last:border-0">
+              <td className="py-3 pr-4">
+                <div className="font-medium text-slate-900">{row.promptPreview || "(no preview stored)"}</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {row.promptLength ? `${row.promptLength} chars` : "length n/a"}
+                </div>
+              </td>
+              <td className="py-3 pr-4 text-slate-600">{row.language || "-"}</td>
+              <td className="py-3 pr-4 text-slate-600">{row.source || "-"}</td>
+              <td className="py-3 pr-4">
+                <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${outcomeStyles[row.outcome]}`}>
+                  {row.outcome}
+                </span>
+              </td>
+              <td className="py-3 pr-4 text-slate-600">{row.responseTimeMs ? `${row.responseTimeMs} ms` : "-"}</td>
+              <td className="py-3 pr-4 text-slate-600">
+                <div>{formatRelativeTime(row.createdAt)}</div>
+                <div className="mt-1 text-xs text-slate-400">{formatTimestamp(row.createdAt)}</div>
+              </td>
+              <td className="py-3 pr-0 text-slate-600">{shortenHostname(row.hostname)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -680,6 +881,10 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
   const expectedKey = process.env.ANALYTICS_DASHBOARD_KEY || "";
   const requestedDays = Number(getSingleValue(params.days) || "7");
   const days = Number.isFinite(requestedDays) ? Math.min(Math.max(Math.round(requestedDays), 1), 30) : 7;
+  const searchQuery = getSingleValue(params.q).trim();
+  const promptLanguage = getSingleValue(params.promptLanguage).trim();
+  const promptSource = getSingleValue(params.promptSource).trim();
+  const promptOutcome = getSingleValue(params.promptOutcome).trim();
 
   if (!expectedKey) {
     return (
@@ -698,7 +903,7 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
     return <AccessGate days={days} />;
   }
 
-  const rows = await fetchAnalyticsRows(days);
+  const [rows, freshness] = await Promise.all([fetchAnalyticsRows(days), fetchKnowledgeBaseFreshness()]);
   const summary = buildAnalyticsSummary(rows, days);
   const latestEvent = summary.recentEvents[0]?.createdAt ?? null;
   const health = buildHealthStatus(summary);
@@ -708,6 +913,25 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
     amber: "border-amber-200 bg-amber-100 text-amber-800",
     rose: "border-rose-200 bg-rose-100 text-rose-800",
   } as const;
+  const filteredPromptRows = summary.promptExplorer.filter((row) => {
+    if (searchQuery) {
+      const haystack = `${row.promptPreview || ""} ${row.source || ""}`.toLowerCase();
+      if (!haystack.includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+    }
+    if (promptLanguage && row.language !== promptLanguage) return false;
+    if (promptSource && row.source !== promptSource) return false;
+    if (promptOutcome && row.outcome !== promptOutcome) return false;
+    return true;
+  });
+  const promptLanguageOptions = [
+    ...new Set(summary.promptExplorer.map((row) => row.language).filter((value): value is string => Boolean(value))),
+  ];
+  const promptSourceOptions = [
+    ...new Set(summary.promptExplorer.map((row) => row.source).filter((value): value is string => Boolean(value))),
+  ];
+  const promptOutcomeOptions = [...new Set(summary.promptExplorer.map((row) => row.outcome))];
 
   return (
     <main
@@ -891,10 +1115,94 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
         </section>
 
         <SectionShell
+          title="Citation analytics"
+          subtitle="Which cited links users actually click after reading answers."
+        >
+          <CitationAnalyticsSection
+            totalClicks={summary.totalCitationClicks}
+            domains={summary.citationDomains}
+            sources={summary.topClickedSources}
+          />
+        </SectionShell>
+
+        <SectionShell
+          title="Knowledge base freshness"
+          subtitle="Corpus size and newest Telegram-backed source currently in Supabase."
+        >
+          <FreshnessPanel freshness={freshness} />
+        </SectionShell>
+
+        <SectionShell
           title="Top prompts by language"
           subtitle="Best-performing prompt starts split by interface language."
         >
           <PromptLanguageBreakdown groups={summary.promptLanguageBreakdown} />
+        </SectionShell>
+
+        <SectionShell
+          title="Prompt explorer"
+          subtitle="Search raw prompt-submit events and inspect rough outcomes derived from the session event sequence."
+          accent={<p className="text-sm text-slate-500">{filteredPromptRows.length} matching prompt rows</p>}
+        >
+          <form
+            className="mb-5 grid gap-3 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1.5fr_0.8fr_0.8fr_0.8fr_auto]"
+            method="get"
+          >
+            <input type="hidden" name="key" value={providedKey} />
+            <input type="hidden" name="days" value={days} />
+            <input
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Search prompt text"
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500"
+            />
+            <select
+              name="promptLanguage"
+              defaultValue={promptLanguage}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500"
+            >
+              <option value="">All languages</option>
+              {promptLanguageOptions.map((option) => (
+                <option key={option} value={option}>{formatLanguageLabel(option)}</option>
+              ))}
+            </select>
+            <select
+              name="promptSource"
+              defaultValue={promptSource}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500"
+            >
+              <option value="">All sources</option>
+              {promptSourceOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <select
+              name="promptOutcome"
+              defaultValue={promptOutcome}
+              className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500"
+            >
+              <option value="">All outcomes</option>
+              {promptOutcomeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Filter
+              </button>
+              <a
+                href={buildPromptFilterHref(providedKey, days, "", "", "", "")}
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                Reset
+              </a>
+            </div>
+          </form>
+
+          <PromptExplorerTable rows={filteredPromptRows.slice(0, 30)} />
         </SectionShell>
 
         <SectionShell
