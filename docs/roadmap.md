@@ -15,6 +15,7 @@
 - Switch transcript downloads to a manifest-driven workflow
 - Keep a curated list of public talks and interviews in `scripts/alisher-video-manifest.json`
 - Support incremental YouTube-only ingestion so new transcripts do not require a full corpus rebuild
+- Added larger Kunuz and Alter Ego interviews to deepen the non-Telegram corpus
 
 ### 2. Improve retrieval weighting
 
@@ -24,7 +25,7 @@
 - Boost first-person chunks and demote generic profile material when it is not relevant
 - Infer topic tags and use them during reranking
 - Surface supporting source snippets and topic labels in the UI
-- Demote low-signal Telegram export artifacts so source cards prefer substantive posts
+- Skip low-signal Telegram export artifacts during ingestion and prune existing leftovers from Supabase
 
 ### 3. Evaluation set
 
@@ -37,6 +38,7 @@
 - Durable rate limiting added through the `consume_ask_alisher_rate_limit()` Supabase RPC
 - First-party analytics ingestion added via `/api/analytics/collect`
 - Local reporting script added in `scripts/analytics-report.ts`
+- Protected `/admin/analytics` dashboard added for quick browser-side reporting
 
 ## Next
 
@@ -50,4 +52,4 @@
 
 - Add Turnstile or equivalent bot friction
 - Return graceful overload responses instead of hanging requests
-- Decide whether first-party analytics should stay script-only or get a protected dashboard
+- Decide whether the analytics dashboard needs stronger auth than an environment-backed access key

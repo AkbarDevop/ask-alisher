@@ -117,5 +117,19 @@
     "channel": "Alisher Sadullayev",
     "kind": "talk",
     "priority": "medium"
+  },
+  {
+    "id": "hI8P-QahLgE",
+    "title": "Yoshlarga qolipdagi fikrlar qiziq emas",
+    "channel": "Kunuz News",
+    "kind": "interview",
+    "priority": "high"
+  },
+  {
+    "id": "ZGKCwsYrnEQ",
+    "title": "Samyy molodoy senator Uzbekistana",
+    "channel": "Alter Ego. Vse pro Uzbekistan",
+    "kind": "interview",
+    "priority": "high"
   }
 ]

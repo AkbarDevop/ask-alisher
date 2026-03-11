@@ -209,6 +209,7 @@ async function main() {
   }
 
   let totalChunks = 0;
+  let totalSkippedLowSignalChunks = 0;
 
   for (const filePath of files) {
     const file = path.relative(DATA_DIR, filePath);
@@ -244,16 +245,43 @@ async function main() {
     }
 
     const chunks = chunkText(content);
-    console.log(`  → ${chunks.length} chunks`);
+    console.log(`  → ${chunks.length} chunks before low-signal filtering`);
 
-    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
-      const batch = chunks.slice(i, i + BATCH_SIZE);
+    const preparedChunks = chunks
+      .map((chunk, index) => {
+        const chunkContent = buildChunkContent(sourceType, chunk, structured.metadata);
+        const lowSignal = isLowSignalChunk(chunkContent, sourceType);
+
+        return {
+          chunkContent,
+          chunkIndex: index,
+          lowSignal,
+        };
+      })
+      .filter((entry) => !entry.lowSignal);
+
+    const skippedLowSignalChunks = chunks.length - preparedChunks.length;
+    totalSkippedLowSignalChunks += skippedLowSignalChunks;
+
+    if (skippedLowSignalChunks > 0) {
+      console.log(`  → skipped ${skippedLowSignalChunks} low-signal chunk(s)`);
+    }
+
+    if (preparedChunks.length === 0) {
+      console.log("  → no chunks left after filtering, skipping file");
+      continue;
+    }
+
+    console.log(`  → ${preparedChunks.length} chunks will be inserted`);
+
+    for (let i = 0; i < preparedChunks.length; i += BATCH_SIZE) {
+      const batch = preparedChunks.slice(i, i + BATCH_SIZE);
 
       // Generate embeddings if available (gracefully skip on quota errors)
       let embeddings: number[][] | null = null;
       if (embedBatch) {
         try {
-          embeddings = await withRetry("Embedding batch", () => embedBatch!(batch));
+          embeddings = await withRetry("Embedding batch", () => embedBatch!(batch.map((entry) => entry.chunkContent)));
         } catch (error) {
           const message = String(error).toLowerCase();
           if (
@@ -270,20 +298,18 @@ async function main() {
       }
 
       const rows = batch.map((chunk, j) => {
-        const chunkContent = buildChunkContent(sourceType, chunk, structured.metadata);
-
         return {
-          content: chunkContent,
+          content: chunk.chunkContent,
           embedding: embeddings ? JSON.stringify(embeddings[j]) : null,
           source_type: sourceType,
           source_url: sourceUrl,
           language,
           metadata: {
             file,
-            chunk_index: i + j,
-            topics: inferTopics(chunkContent),
-            is_first_person: detectFirstPersonVoice(chunkContent),
-            is_low_signal: isLowSignalChunk(chunkContent, sourceType),
+            chunk_index: chunk.chunkIndex,
+            topics: inferTopics(chunk.chunkContent),
+            is_first_person: detectFirstPersonVoice(chunk.chunkContent),
+            is_low_signal: false,
             ...structured.metadata,
           },
         };
@@ -297,16 +323,17 @@ async function main() {
       });
 
       console.log(
-        `  Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(chunks.length / BATCH_SIZE)}`
+        `  Inserted batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(preparedChunks.length / BATCH_SIZE)}`
       );
 
       await sleep(150);
     }
 
-    totalChunks += chunks.length;
+    totalChunks += preparedChunks.length;
   }
 
   console.log(`\nDone! Inserted ${totalChunks} total chunks.`);
+  console.log(`Skipped ${totalSkippedLowSignalChunks} low-signal chunk(s).`);
 }
 
 main().catch(console.error);
