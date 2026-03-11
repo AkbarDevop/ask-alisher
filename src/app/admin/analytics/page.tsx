@@ -90,6 +90,13 @@ function shortenHostname(hostname: string | null): string {
   return hostname.replace(".netlify.app", "");
 }
 
+function formatLanguageLabel(language: string): string {
+  if (language === "uz") return "Uzbek";
+  if (language === "en") return "English";
+  if (language === "ru") return "Russian";
+  return language.charAt(0).toUpperCase() + language.slice(1);
+}
+
 function buildDaysHref(key: string, days: number): string {
   return `/admin/analytics?key=${encodeURIComponent(key)}&days=${days}`;
 }
@@ -174,29 +181,67 @@ function SectionShell({
   );
 }
 
+function Sparkline({
+  points,
+  color,
+}: {
+  points: number[];
+  color: string;
+}) {
+  const width = 180;
+  const height = 54;
+  const padding = 6;
+  const max = Math.max(1, ...points);
+  const drawableWidth = width - padding * 2;
+  const drawableHeight = height - padding * 2;
+  const line = points
+    .map((value, index) => {
+      const x = padding + (points.length === 1 ? drawableWidth / 2 : (drawableWidth / (points.length - 1)) * index);
+      const y = padding + drawableHeight - (value / max) * drawableHeight;
+      return `${index === 0 ? "M" : "L"} ${x} ${y}`;
+    })
+    .join(" ");
+  const area = `${line} L ${padding + drawableWidth} ${height - padding} L ${padding} ${height - padding} Z`;
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="mt-4 h-14 w-full">
+      <path d={area} fill={color} opacity="0.12" />
+      <path d={line} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {points.map((value, index) => {
+        const x = padding + (points.length === 1 ? drawableWidth / 2 : (drawableWidth / (points.length - 1)) * index);
+        const y = padding + drawableHeight - (value / max) * drawableHeight;
+        return <circle key={`${index}-${value}`} cx={x} cy={y} r="2.5" fill={color} />;
+      })}
+    </svg>
+  );
+}
+
 function KpiCard({
   label,
   value,
   detail,
   tone,
+  points,
 }: {
   label: string;
   value: string;
   detail?: string;
   tone: "blue" | "teal" | "amber" | "rose";
+  points: number[];
 }) {
   const tones = {
-    blue: "from-blue-500/14 to-blue-100/20 text-blue-700",
-    teal: "from-teal-500/14 to-teal-100/20 text-teal-700",
-    amber: "from-amber-500/14 to-amber-100/20 text-amber-700",
-    rose: "from-rose-500/14 to-rose-100/20 text-rose-700",
+    blue: { surface: "from-blue-500/14 to-blue-100/20 text-blue-700", line: "#155dfc" },
+    teal: { surface: "from-teal-500/14 to-teal-100/20 text-teal-700", line: "#0f766e" },
+    amber: { surface: "from-amber-500/14 to-amber-100/20 text-amber-700", line: "#f59e0b" },
+    rose: { surface: "from-rose-500/14 to-rose-100/20 text-rose-700", line: "#e11d48" },
   };
 
   return (
-    <div className={`rounded-[1.75rem] border border-white/70 bg-gradient-to-br ${tones[tone]} p-5 shadow-sm`}>
+    <div className={`rounded-[1.75rem] border border-white/70 bg-gradient-to-br ${tones[tone].surface} p-5 shadow-sm`}>
       <p className="text-sm font-medium text-slate-500">{label}</p>
       <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
       {detail ? <p className="mt-2 text-sm text-slate-500">{detail}</p> : null}
+      <Sparkline points={points} color={tones[tone].line} />
     </div>
   );
 }
@@ -485,6 +530,63 @@ function SmallList({
   );
 }
 
+function AlertCards({
+  alerts,
+}: {
+  alerts: Array<{ key: string; title: string; detail: string; tone: "emerald" | "amber" | "rose" | "slate"; value?: string }>;
+}) {
+  const styles = {
+    slate: "border-slate-200 bg-slate-50 text-slate-700",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    amber: "border-amber-200 bg-amber-50 text-amber-800",
+    rose: "border-rose-200 bg-rose-50 text-rose-800",
+  } as const;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {alerts.map((alert) => (
+        <div key={alert.key} className={`rounded-[1.5rem] border p-4 shadow-sm ${styles[alert.tone]}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] opacity-70">Anomaly flag</p>
+              <p className="mt-1 text-lg font-semibold">{alert.title}</p>
+            </div>
+            {alert.value ? <span className="rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium">{alert.value}</span> : null}
+          </div>
+          <p className="mt-3 text-sm leading-6 opacity-90">{alert.detail}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PromptLanguageBreakdown({
+  groups,
+}: {
+  groups: Array<{ language: string; total: number; items: AnalyticsCount[] }>;
+}) {
+  if (groups.length === 0) {
+    return <p className="text-sm text-slate-500">Prompt-by-language split will appear as new prompt submits arrive.</p>;
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      {groups.map((group) => (
+        <div key={group.language} className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-slate-500">{formatLanguageLabel(group.language)}</p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{group.total}</p>
+            </div>
+            <span className="rounded-full bg-white px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-500">top prompts</span>
+          </div>
+          <SmallList items={group.items} fallback="No prompts yet." />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function RecentEventsTable({ events }: { events: AnalyticsRecentEvent[] }) {
   if (events.length === 0) {
     return <p className="text-sm text-slate-500">No recent events yet.</p>;
@@ -699,11 +801,37 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
           </div>
         </section>
 
+        <AlertCards alerts={summary.alerts} />
+
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <KpiCard label="Events" value={formatCompactNumber(summary.totalEvents)} detail="all first-party events collected" tone="blue" />
-          <KpiCard label="Prompt submits" value={formatCompactNumber(summary.promptSubmits)} detail="user attempts to talk to Alisher" tone="teal" />
-          <KpiCard label="First responses" value={formatCompactNumber(summary.firstResponses)} detail="successful first streamed answers" tone="amber" />
-          <KpiCard label="Response errors" value={formatCompactNumber(summary.responseErrors)} detail="server or client-side response failures" tone="rose" />
+          <KpiCard
+            label="Events"
+            value={formatCompactNumber(summary.totalEvents)}
+            detail="all first-party events collected"
+            tone="blue"
+            points={summary.dailyTrend.map((point) => point.events)}
+          />
+          <KpiCard
+            label="Prompt submits"
+            value={formatCompactNumber(summary.promptSubmits)}
+            detail="user attempts to talk to Alisher"
+            tone="teal"
+            points={summary.dailyTrend.map((point) => point.promptSubmits)}
+          />
+          <KpiCard
+            label="First responses"
+            value={formatCompactNumber(summary.firstResponses)}
+            detail="successful first streamed answers"
+            tone="amber"
+            points={summary.dailyTrend.map((point) => point.firstResponses)}
+          />
+          <KpiCard
+            label="Response errors"
+            value={formatCompactNumber(summary.responseErrors)}
+            detail="server or client-side response failures"
+            tone="rose"
+            points={summary.dailyTrend.map((point) => point.responseErrors)}
+          />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.6fr_0.9fr]">
@@ -761,6 +889,13 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
             </SectionShell>
           </div>
         </section>
+
+        <SectionShell
+          title="Top prompts by language"
+          subtitle="Best-performing prompt starts split by interface language."
+        >
+          <PromptLanguageBreakdown groups={summary.promptLanguageBreakdown} />
+        </SectionShell>
 
         <SectionShell
           title="Recent activity"

@@ -76,7 +76,7 @@ Important:
 - GA4 is wired through `NEXT_PUBLIC_GA_MEASUREMENT_IDS`, defaulting to `G-BWTQB4SFP4,G-2XNF6BSJG8`.
 - The app now writes a small first-party analytics stream into Supabase for local reporting scripts.
 - The protected first-party analytics dashboard reads `ANALYTICS_DASHBOARD_KEY` from the server environment.
-- The dashboard now includes KPI cards, trend charts, conversion flow, a traffic health strip, top prompts, CSV export, and a recent-events stream at `/admin/analytics`.
+- The dashboard now includes sparkline KPI cards, anomaly flags, trend charts, conversion flow, prompt splits by language, a traffic health strip, top prompts, CSV export, and a recent-events stream at `/admin/analytics`.
 
 ## Database
 

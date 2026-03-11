@@ -16,6 +16,20 @@ export type AnalyticsCount = {
   value: number;
 };
 
+export type AnalyticsPromptLanguageGroup = {
+  language: string;
+  total: number;
+  items: AnalyticsCount[];
+};
+
+export type AnalyticsAlert = {
+  key: string;
+  title: string;
+  detail: string;
+  tone: "emerald" | "amber" | "rose" | "slate";
+  value?: string;
+};
+
 export type AnalyticsFunnelStep = {
   key: string;
   label: string;
@@ -66,8 +80,10 @@ export type AnalyticsSummary = {
   hostnames: AnalyticsCount[];
   promptSources: AnalyticsCount[];
   topPrompts: AnalyticsCount[];
+  promptLanguageBreakdown: AnalyticsPromptLanguageGroup[];
   errorTypes: AnalyticsCount[];
   dailyViews: AnalyticsCount[];
+  alerts: AnalyticsAlert[];
   funnel: AnalyticsFunnelStep[];
   dailyTrend: AnalyticsDailyTrendPoint[];
   recentEvents: AnalyticsRecentEvent[];
@@ -94,6 +110,11 @@ function toSortedCounts(map: Map<string, number>, limit = 5): AnalyticsCount[] {
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
     .map(([key, value]) => ({ key, value }));
+}
+
+function average(values: number[]): number | null {
+  if (values.length === 0) return null;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function buildDailySeed(days: number): AnalyticsDailyTrendPoint[] {
@@ -159,6 +180,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
   const hostnames = new Map<string, number>();
   const promptSources = new Map<string, number>();
   const topPrompts = new Map<string, number>();
+  const promptLanguageMap = new Map<string, Map<string, number>>();
   const errorTypes = new Map<string, number>();
   const dailyViews = new Map<string, number>();
   const dailyTrend = buildDailySeed(days);
@@ -185,7 +207,16 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
 
     if (row.event_name === "askalisher_prompt_submit") {
       incrementCounter(promptSources, typeof row.metadata?.source === "string" ? row.metadata.source : null);
-      incrementCounter(topPrompts, typeof row.metadata?.prompt_preview === "string" ? row.metadata.prompt_preview : null);
+      const promptPreview = typeof row.metadata?.prompt_preview === "string" ? row.metadata.prompt_preview : null;
+      incrementCounter(topPrompts, promptPreview);
+
+      if (promptPreview) {
+        const promptLanguage = row.language || "unknown";
+        const languageBucket = promptLanguageMap.get(promptLanguage) || new Map<string, number>();
+        languageBucket.set(promptPreview, (languageBucket.get(promptPreview) || 0) + 1);
+        promptLanguageMap.set(promptLanguage, languageBucket);
+      }
+
       if (dayPoint) dayPoint.promptSubmits += 1;
     }
 
@@ -259,6 +290,85 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     },
   ];
 
+  const promptLanguageBreakdown: AnalyticsPromptLanguageGroup[] = [...promptLanguageMap.entries()]
+    .map(([language, items]) => ({
+      language,
+      total: [...items.values()].reduce((sum, value) => sum + value, 0),
+      items: toSortedCounts(items, 4),
+    }))
+    .sort((a, b) => b.total - a.total);
+
+  const latestDay = dailyTrend[dailyTrend.length - 1] ?? null;
+  const priorDays = dailyTrend.slice(0, -1);
+  const priorLatencyAverage = average(
+    priorDays
+      .map((point) => point.averageResponseTimeMs)
+      .filter((value): value is number => typeof value === "number" && value > 0)
+  );
+  const priorResponseRateAverage = average(
+    priorDays
+      .filter((point) => point.promptSubmits > 0)
+      .map((point) => (point.firstResponses / point.promptSubmits) * 100)
+  );
+  const alerts: AnalyticsAlert[] = [];
+
+  if (latestDay) {
+    if (latestDay.averageResponseTimeMs && priorLatencyAverage) {
+      if (latestDay.averageResponseTimeMs > Math.max(6000, priorLatencyAverage * 1.5)) {
+        alerts.push({
+          key: "latency_spike",
+          title: "Latency spike",
+          detail: `${latestDay.label} is averaging ${latestDay.averageResponseTimeMs} ms vs ${Math.round(priorLatencyAverage)} ms across earlier days.`,
+          tone: latestDay.averageResponseTimeMs > Math.max(9000, priorLatencyAverage * 2) ? "rose" : "amber",
+          value: `${latestDay.averageResponseTimeMs} ms`,
+        });
+      }
+    }
+
+    if (latestDay.promptSubmits > 0) {
+      const latestResponseRate = (latestDay.firstResponses / latestDay.promptSubmits) * 100;
+
+      if (priorResponseRateAverage !== null && latestResponseRate < priorResponseRateAverage - 20) {
+        alerts.push({
+          key: "response_rate_drop",
+          title: "Response-rate drop",
+          detail: `${latestDay.label} is converting ${latestResponseRate.toFixed(1)}% of prompts into first responses vs ${priorResponseRateAverage.toFixed(1)}% previously.`,
+          tone: latestResponseRate < 60 ? "rose" : "amber",
+          value: `${latestResponseRate.toFixed(1)}%`,
+        });
+      }
+
+      if (latestDay.firstResponses === 0) {
+        alerts.push({
+          key: "no_first_responses",
+          title: "Prompts without replies",
+          detail: `${latestDay.label} has prompt traffic but no tracked first responses yet.`,
+          tone: "rose",
+          value: `${latestDay.promptSubmits} prompt${latestDay.promptSubmits === 1 ? "" : "s"}`,
+        });
+      }
+    }
+
+    if (latestDay.responseErrors > 0) {
+      alerts.push({
+        key: "response_errors",
+        title: "Response errors detected",
+        detail: `${latestDay.responseErrors} response error event${latestDay.responseErrors === 1 ? "" : "s"} appeared on ${latestDay.label}.`,
+        tone: latestDay.responseErrors >= 3 ? "rose" : "amber",
+        value: String(latestDay.responseErrors),
+      });
+    }
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({
+      key: "no_major_anomalies",
+      title: "No major anomalies",
+      detail: "Latest latency, response conversion, and error rates are within the normal range for this window.",
+      tone: uniqueSessions.size > 0 ? "emerald" : "slate",
+    });
+  }
+
   return {
     days,
     totalEvents: rows.length,
@@ -274,8 +384,10 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     hostnames: toSortedCounts(hostnames, 5),
     promptSources: toSortedCounts(promptSources, 5),
     topPrompts: toSortedCounts(topPrompts, 6),
+    promptLanguageBreakdown,
     errorTypes: toSortedCounts(errorTypes, 5),
     dailyViews: toSortedCounts(dailyViews, days),
+    alerts,
     funnel,
     dailyTrend,
     recentEvents,
