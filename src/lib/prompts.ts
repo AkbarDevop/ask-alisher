@@ -55,6 +55,26 @@ const EVERGREEN_SUGGESTED_QUESTIONS = {
     "Why is visiting regions and meeting people on the ground important to you?",
     "What is your long-term vision for Uzbek youth?",
     "Who are you and what are you focused on?",
+    "What should students in regional universities focus on first?",
+    "How should young people build discipline without burning out?",
+    "What do you think strong youth communities are built on?",
+    "Why do practical skills matter more than just certificates?",
+    "What kind of habits make young leaders credible?",
+    "How should a student choose between study, work, and building a project?",
+    "What does real opportunity for youth actually look like?",
+    "What should parents understand better about ambitious young people?",
+    "How do you think about confidence and self-belief in youth?",
+    "Why do you keep emphasizing execution over talk?",
+    "How should young people use grants and support programs wisely?",
+    "What role should mentors play in a young person's growth?",
+    "How should regional youth compete at a global level?",
+    "Why are reading and language learning so connected in your view?",
+    "What does public service mean to you personally?",
+    "How do you decide which youth initiatives deserve the most attention?",
+    "What separates active young people from passive ones?",
+    "What does responsible leadership look like at a young age?",
+    "How can a student become useful before graduating?",
+    "What should ambitious youth stop wasting time on?",
   ],
   uz: [
     "O'zbekistonda yoshlar yetakchiligi haqida qanday o'ylaysiz?",
@@ -85,6 +105,26 @@ const EVERGREEN_SUGGESTED_QUESTIONS = {
     "Hududlarga borib, odamlar bilan joyida uchrashish nega muhim?",
     "O'zbek yoshlarining uzoq muddatli kelajagini qanday tasavvur qilasiz?",
     "Siz kimsiz va hozir nimaga ko'proq e'tibor qaratgansiz?",
+    "Hududdagi universitet talabalari birinchi navbatda nimaga e'tibor berishi kerak?",
+    "Yoshlar intizomni kuyib ketmasdan qanday shakllantirishi mumkin?",
+    "Kuchli yoshlar hamjamiyati nimaga tayanadi deb o'ylaysiz?",
+    "Nega sertifikatdan ko'ra amaliy ko'nikmalar muhimroq?",
+    "Yosh yetakchini ishonchli qiladigan odatlar qaysilar?",
+    "Talaba o'qish, ish va loyiha qurish o'rtasida qanday balans topishi kerak?",
+    "Siz uchun yoshlar uchun haqiqiy imkoniyat deganda nima tushuniladi?",
+    "Ota-onalar ambitsiyali yoshlar haqida nimani yaxshiroq tushunishi kerak?",
+    "Yoshlar uchun ishonch va o'ziga bo'lgan ishonchni qanday ko'rasiz?",
+    "Nega gapdan ko'ra ijroni ko'proq ta'kidlaysiz?",
+    "Yoshlar grant va yordam dasturlaridan qanday oqilona foydalanishi kerak?",
+    "Mentorlarning yoshlar rivojidagi roli qanday bo'lishi kerak?",
+    "Hududdagi yoshlar global darajada qanday raqobat qila oladi?",
+    "Nega siz uchun kitobxonlik va til o'rganish bir-biriga bog'liq?",
+    "Shaxsan siz uchun davlat xizmatining ma'nosi nima?",
+    "Qaysi yoshlar tashabbusiga ko'proq e'tibor berishni qanday hal qilasiz?",
+    "Faol yoshlarni passiv yoshlardan nima ajratib turadi?",
+    "Yoshlikdagi mas'uliyatli yetakchilik qanday ko'rinadi?",
+    "Talaba diplom olmasdan oldin qanday qilib foydali bo'la oladi?",
+    "Ambitsiyali yoshlar vaqtini nimaga sarflamasligi kerak?",
   ],
 } as const;
 
@@ -100,6 +140,21 @@ const RECENT_SUGGESTED_QUESTIONS = {
     "What recent Telegram post best reflects your priorities today?",
     "What are you trying to change for young people outside Tashkent right now?",
     "What recent post best shows your view on youth opportunity?",
+    "What have you been emphasizing most in your latest regional visits?",
+    "What issue comes up most often in your recent meetings with young people?",
+    "What recent post best captures your education priorities?",
+    "What have you said lately about foreign languages and opportunity?",
+    "What recent message best shows your approach to youth employment?",
+    "What trend keeps appearing in your recent Telegram posts?",
+    "What have you recently said about helping students in the regions?",
+    "Which recent post best reflects your view on discipline and ambition?",
+    "What have you been saying lately about learning centers outside Tashkent?",
+    "What recent post best shows how you think about practical skills?",
+    "What recent example best shows your focus on youth entrepreneurship?",
+    "What have you recently been saying about books and reading culture?",
+    "What recent post best reflects your view on supporting talented youth?",
+    "What did your latest public updates say about opportunities in the regions?",
+    "What were the clearest themes in your latest Telegram posts?",
   ],
   uz: [
     "O'tgan oy Telegramda nimalar yozgansiz?",
@@ -112,6 +167,21 @@ const RECENT_SUGGESTED_QUESTIONS = {
     "Bugungi ustuvorliklaringizni qaysi Telegram postingiz yaxshi ko'rsatadi?",
     "Hozir Toshkentdan tashqaridagi yoshlar hayotida nimani o'zgartirmoqchisiz?",
     "Yoshlar imkoniyati haqidagi qarashingizni qaysi so'nggi postingiz yaxshi ifodalaydi?",
+    "So'nggi hududiy tashriflaringizda nimalarni ko'proq ta'kidladingiz?",
+    "Yoshlar bilan so'nggi uchrashuvlarda qaysi muammo eng ko'p tilga olindi?",
+    "Ta'lim bo'yicha ustuvorliklaringizni qaysi yangi post yaxshi ko'rsatadi?",
+    "Xorijiy tillar va imkoniyat haqida yaqinda nimalar degansiz?",
+    "Yoshlar bandligi haqida so'nggi paytda qanday fikr bildirdingiz?",
+    "Oxirgi Telegram postlaringizda qaysi mavzu qayta-qayta uchrayapti?",
+    "Hududdagi talabalarni qo'llab-quvvatlash haqida yaqinda nima dedingiz?",
+    "Intizom va ambitsiya haqidagi qarashingizni qaysi yangi post ifodalaydi?",
+    "Toshkentdan tashqaridagi o'quv markazlari haqida yaqinda nimalar dedingiz?",
+    "Amaliy ko'nikmalar haqidagi fikringizni qaysi yangi post yaxshi ko'rsatadi?",
+    "Yoshlar tadbirkorligini qo'llab-quvvatlash bo'yicha qaysi yaqindagi misol muhim?",
+    "Kitob va kitobxonlik haqida so'nggi paytda nimalarni ko'proq aytdingiz?",
+    "Iqtidorli yoshlarni qo'llab-quvvatlash haqidagi qarashingizni qaysi yangi post ko'rsatadi?",
+    "Hududlardagi imkoniyatlar haqida oxirgi ommaviy yangilanishlaringizda nima deyilgan?",
+    "So'nggi Telegram postlaringizdagi eng aniq mavzular qaysilar edi?",
   ],
 } as const;
 
@@ -194,24 +264,6 @@ export const UI_TEXT = {
   },
 } as const;
 
-function pickRandomQuestions(
-  pool: readonly string[],
-  count: number,
-  seen: Set<string>
-): string[] {
-  const available = pool.filter((question) => !seen.has(question));
-  const picked: string[] = [];
-
-  for (let i = 0; i < count && available.length > 0; i += 1) {
-    const idx = Math.floor(Math.random() * available.length);
-    const [question] = available.splice(idx, 1);
-    seen.add(question);
-    picked.push(question);
-  }
-
-  return picked;
-}
-
 function shuffleQuestions(questions: string[]): string[] {
   const next = [...questions];
   for (let i = next.length - 1; i > 0; i -= 1) {
@@ -221,24 +273,37 @@ function shuffleQuestions(questions: string[]): string[] {
   return next;
 }
 
+const questionDecks: Record<Language, { deck: string[]; cursor: number }> = {
+  en: { deck: [], cursor: 0 },
+  uz: { deck: [], cursor: 0 },
+};
+
 export function getRandomQuestions(lang: Language, count = 4): string[] {
+  const pool = SUGGESTED_QUESTIONS[lang];
+  if (pool.length === 0 || count <= 0) return [];
+
+  const state = questionDecks[lang];
+  const picked: string[] = [];
   const seen = new Set<string>();
-  const recentQuota = Math.min(Math.ceil(count / 2), RECENT_SUGGESTED_QUESTIONS[lang].length);
-  const evergreenQuota = Math.min(
-    Math.max(count - recentQuota, 0),
-    EVERGREEN_SUGGESTED_QUESTIONS[lang].length
-  );
 
-  const picked = [
-    ...pickRandomQuestions(RECENT_SUGGESTED_QUESTIONS[lang], recentQuota, seen),
-    ...pickRandomQuestions(EVERGREEN_SUGGESTED_QUESTIONS[lang], evergreenQuota, seen),
-  ];
+  while (picked.length < count && seen.size < pool.length) {
+    if (state.cursor >= state.deck.length) {
+      state.deck = shuffleQuestions([...pool]);
+      state.cursor = 0;
+    }
 
-  if (picked.length < count) {
-    picked.push(...pickRandomQuestions(SUGGESTED_QUESTIONS[lang], count - picked.length, seen));
+    const candidate = state.deck[state.cursor];
+    state.cursor += 1;
+
+    if (!candidate || seen.has(candidate)) {
+      continue;
+    }
+
+    seen.add(candidate);
+    picked.push(candidate);
   }
 
-  return shuffleQuestions(picked);
+  return picked;
 }
 
 const FOLLOW_UP_STOP_WORDS = new Set([
