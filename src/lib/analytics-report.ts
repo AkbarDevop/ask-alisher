@@ -47,6 +47,7 @@ export type AnalyticsRecentEvent = {
   responseTimeMs: number | null;
   messageCount: number | null;
   promptLength: number | null;
+  promptPreview: string | null;
   linkUrl: string | null;
 };
 
@@ -64,6 +65,7 @@ export type AnalyticsSummary = {
   languages: AnalyticsCount[];
   hostnames: AnalyticsCount[];
   promptSources: AnalyticsCount[];
+  topPrompts: AnalyticsCount[];
   errorTypes: AnalyticsCount[];
   dailyViews: AnalyticsCount[];
   funnel: AnalyticsFunnelStep[];
@@ -156,6 +158,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
   const languages = new Map<string, number>();
   const hostnames = new Map<string, number>();
   const promptSources = new Map<string, number>();
+  const topPrompts = new Map<string, number>();
   const errorTypes = new Map<string, number>();
   const dailyViews = new Map<string, number>();
   const dailyTrend = buildDailySeed(days);
@@ -182,6 +185,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
 
     if (row.event_name === "askalisher_prompt_submit") {
       incrementCounter(promptSources, typeof row.metadata?.source === "string" ? row.metadata.source : null);
+      incrementCounter(topPrompts, typeof row.metadata?.prompt_preview === "string" ? row.metadata.prompt_preview : null);
       if (dayPoint) dayPoint.promptSubmits += 1;
     }
 
@@ -227,6 +231,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     responseTimeMs: typeof row.metadata?.response_time_ms === "number" ? row.metadata.response_time_ms : null,
     messageCount: typeof row.metadata?.message_count === "number" ? row.metadata.message_count : null,
     promptLength: typeof row.metadata?.prompt_length === "number" ? row.metadata.prompt_length : null,
+    promptPreview: typeof row.metadata?.prompt_preview === "string" ? row.metadata.prompt_preview : null,
     linkUrl: typeof row.metadata?.link_url === "string" ? row.metadata.link_url : null,
   }));
 
@@ -268,6 +273,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     languages: toSortedCounts(languages, 5),
     hostnames: toSortedCounts(hostnames, 5),
     promptSources: toSortedCounts(promptSources, 5),
+    topPrompts: toSortedCounts(topPrompts, 6),
     errorTypes: toSortedCounts(errorTypes, 5),
     dailyViews: toSortedCounts(dailyViews, days),
     funnel,

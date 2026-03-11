@@ -39,7 +39,7 @@
 - First-party analytics ingestion added via `/api/analytics/collect`
 - Local reporting script added in `scripts/analytics-report.ts`
 - Protected `/admin/analytics` dashboard added for quick browser-side reporting
-- Dashboard now includes trend charts, funnel view, split charts, and a recent event stream
+- Dashboard now includes trend charts, funnel view, split charts, a traffic health strip, CSV export, top prompts, and a recent event stream
 
 ## Next
 

@@ -94,6 +94,51 @@ function buildDaysHref(key: string, days: number): string {
   return `/admin/analytics?key=${encodeURIComponent(key)}&days=${days}`;
 }
 
+function buildExportHref(key: string, days: number): string {
+  return `/admin/analytics/export?key=${encodeURIComponent(key)}&days=${days}`;
+}
+
+function buildHealthStatus(summary: {
+  firstResponseRate: number | null;
+  errorRate: number | null;
+  averageResponseTimeMs: number | null;
+  uniqueSessions: number;
+}) {
+  const responseRate = summary.firstResponseRate ?? 0;
+  const errorRate = summary.errorRate ?? 0;
+  const latency = summary.averageResponseTimeMs ?? 0;
+
+  if (summary.uniqueSessions === 0) {
+    return {
+      label: "Waiting for traffic",
+      tone: "slate",
+      detail: "No sessions have been tracked in the selected time window yet.",
+    } as const;
+  }
+
+  if (responseRate >= 90 && errorRate === 0 && (latency === 0 || latency <= 6000)) {
+    return {
+      label: "Healthy",
+      tone: "emerald",
+      detail: "Response conversion and latency both look stable.",
+    } as const;
+  }
+
+  if (responseRate >= 75 && errorRate <= 10 && (latency === 0 || latency <= 9000)) {
+    return {
+      label: "Watch",
+      tone: "amber",
+      detail: "Traffic is fine overall, but response quality or latency needs attention.",
+    } as const;
+  }
+
+  return {
+    label: "At risk",
+    tone: "rose",
+    detail: "Response rate or latency is drifting beyond the normal operating range.",
+  } as const;
+}
+
 function getPointValue(
   point: AnalyticsDailyTrendPoint,
   key: (typeof TREND_SERIES)[number]["key"]
@@ -465,7 +510,7 @@ function RecentEventsTable({ events }: { events: AnalyticsRecentEvent[] }) {
               <td className="py-3 pr-4">
                 <div className="font-medium text-slate-900">{formatEventName(event.eventName)}</div>
                 <div className="mt-1 text-xs text-slate-500">
-                  {event.errorType || event.pagePath || event.linkUrl || "system event"}
+                  {event.promptPreview || event.errorType || event.pagePath || event.linkUrl || "system event"}
                 </div>
               </td>
               <td className="py-3 pr-4 text-slate-600">
@@ -554,6 +599,13 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
   const rows = await fetchAnalyticsRows(days);
   const summary = buildAnalyticsSummary(rows, days);
   const latestEvent = summary.recentEvents[0]?.createdAt ?? null;
+  const health = buildHealthStatus(summary);
+  const healthStyles = {
+    slate: "border-slate-200 bg-slate-100 text-slate-700",
+    emerald: "border-emerald-200 bg-emerald-100 text-emerald-800",
+    amber: "border-amber-200 bg-amber-100 text-amber-800",
+    rose: "border-rose-200 bg-rose-100 text-rose-800",
+  } as const;
 
   return (
     <main
@@ -611,6 +663,13 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
                 </div>
               </div>
 
+              <a
+                href={buildExportHref(providedKey, days)}
+                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/14"
+              >
+                Export CSV
+              </a>
+
               <div className="rounded-[1.75rem] bg-white px-5 py-4 text-slate-950">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Health snapshot</p>
                 <div className="mt-3 flex items-end justify-between gap-4">
@@ -625,6 +684,18 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section
+          className={`rounded-[1.75rem] border px-5 py-4 shadow-sm ${healthStyles[health.tone]}`}
+        >
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.18em] opacity-70">Traffic health</p>
+              <p className="mt-1 text-lg font-semibold">{health.label}</p>
+            </div>
+            <p className="max-w-2xl text-sm opacity-90">{health.detail}</p>
           </div>
         </section>
 
@@ -677,6 +748,10 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
           </SectionShell>
 
           <div className="grid gap-6">
+            <SectionShell title="Top prompts" subtitle="Most common prompt starts captured from new submit events.">
+              <SmallList items={summary.topPrompts} fallback="Prompt text will appear here after new chats are submitted." />
+            </SectionShell>
+
             <SectionShell title="Hostnames" subtitle="Traffic split across production and permalink hosts.">
               <SmallList items={summary.hostnames.map((item) => ({ ...item, key: shortenHostname(item.key) }))} fallback="No hostname data yet." />
             </SectionShell>

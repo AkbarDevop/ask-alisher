@@ -120,6 +120,14 @@ function getMessageText(message: UIMessage): string {
   );
 }
 
+function buildPromptPreview(input: string): string {
+  return input
+    .replace(/^\[Respond in Uzbek \/ O'zbek tilida javob bering\]\n/u, "")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 function createMessage(role: "user" | "assistant", text = ""): UIMessage {
   const parts = text ? ([{ type: "text", text }] as TextPart[]) : [];
   return {
@@ -594,6 +602,7 @@ export function ChatInterface() {
       language: lang,
       prompt_length: text.trim().length,
       source: "typed",
+      prompt_preview: buildPromptPreview(text),
     });
     const prefix = lang === "uz" ? "[Respond in Uzbek / O'zbek tilida javob bering]\n" : "";
     const nextMessages = [...messages, createMessage("user", prefix + text)];
@@ -627,6 +636,7 @@ export function ChatInterface() {
     pushAnalyticsEvent("askalisher_retry_click", {
       language: lang,
       prompt_length: lastFailedInput.trim().length,
+      prompt_preview: buildPromptPreview(lastFailedInput),
     });
 
     const conversation =
@@ -669,6 +679,7 @@ export function ChatInterface() {
       language: lang,
       prompt_length: question.trim().length,
       source: "suggested",
+      prompt_preview: buildPromptPreview(question),
     });
     const prefix = lang === "uz" ? "[Respond in Uzbek / O'zbek tilida javob bering]\n" : "";
     const nextMessages = [...messages, createMessage("user", prefix + question)];
