@@ -113,7 +113,62 @@ interface MessageBubbleProps {
   message: UIMessage;
   lang?: Language;
   isStreaming?: boolean;
+  question?: string;
   onOutboundClick?: (url: string, linkText: string) => void;
+  onShare?: (payload: {
+    method: "native" | "clipboard";
+    hasQuestion: boolean;
+    questionLength: number;
+    answerLength: number;
+  }) => void;
+}
+
+function buildShareUrl(question: string | undefined, lang: Language): string {
+  const origin =
+    typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : "https://askalishersadullaev.netlify.app";
+  const url = new URL(origin);
+  url.searchParams.set("utm_source", "share");
+  url.searchParams.set("utm_medium", "organic");
+  url.searchParams.set("utm_campaign", "ask_alisher_answer_share");
+  url.searchParams.set("lang", lang);
+  if (question) {
+    url.searchParams.set("q", question);
+  }
+  return url.toString();
+}
+
+function truncateForShare(text: string, maxLength: number): string {
+  const normalized = text.replace(/\s+/gu, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(maxLength - 1, 0)).trimEnd()}...`;
+}
+
+function buildShareText(params: {
+  lang: Language;
+  question?: string;
+  answer: string;
+}) {
+  const { lang, question, answer } = params;
+  const t = UI_TEXT[lang];
+  const trimmedQuestion = question?.trim();
+  const trimmedAnswer = truncateForShare(answer, 900);
+
+  const lines = ["Ask Alisher", ""];
+
+  if (trimmedQuestion) {
+    lines.push(`${t.shareQuestionLabel}:`);
+    lines.push(trimmedQuestion);
+    lines.push("");
+  }
+
+  lines.push(`${t.shareAnswerLabel}:`);
+  lines.push(trimmedAnswer);
+  lines.push("");
+  lines.push(`${t.shareCta}:`);
+
+  return lines.join("\n");
 }
 
 // SVG logo icons for source types
@@ -170,7 +225,9 @@ export function MessageBubble({
   message,
   lang = "en",
   isStreaming = false,
+  question,
   onOutboundClick,
+  onShare,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
@@ -262,21 +319,39 @@ export function MessageBubble({
   }
 
   async function handleShare() {
+    const shareUrl = buildShareUrl(question, lang);
+    const shareText = buildShareText({
+      lang,
+      question,
+      answer: text,
+    });
     const shareData = {
       title: "Ask Alisher",
-      text: `Alisher Sadullaev: "${text.slice(0, 280)}${text.length > 280 ? "..." : ""}"`,
-      url: window.location.href,
+      text: shareText,
+      url: shareUrl,
     };
     if (navigator.share) {
       try {
         await navigator.share(shareData);
+        onShare?.({
+          method: "native",
+          hasQuestion: Boolean(question?.trim()),
+          questionLength: question?.trim().length || 0,
+          answerLength: text.trim().length,
+        });
       } catch {
         // User cancelled share
       }
     } else {
       await navigator.clipboard.writeText(
-        `${shareData.text}\n\n${shareData.url}`
+        `${shareText}\n${shareUrl}`
       );
+      onShare?.({
+        method: "clipboard",
+        hasQuestion: Boolean(question?.trim()),
+        questionLength: question?.trim().length || 0,
+        answerLength: text.trim().length,
+      });
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     }

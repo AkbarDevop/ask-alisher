@@ -128,6 +128,10 @@ function buildPromptPreview(input: string): string {
     .slice(0, 120);
 }
 
+function stripLanguagePrefix(input: string): string {
+  return input.replace(/^\[Respond in Uzbek \/ O'zbek tilida javob bering\]\n/u, "").trim();
+}
+
 function createMessage(role: "user" | "assistant", text = ""): UIMessage {
   const parts = text ? ([{ type: "text", text }] as TextPart[]) : [];
   return {
@@ -252,10 +256,12 @@ export function ChatInterface() {
   useEffect(() => {
     try {
       const savedChat = localStorage.getItem("ask-alisher-chat");
+      let restoredMessages: UIMessage[] = [];
       if (savedChat) {
         const parsed = JSON.parse(savedChat);
         const normalized = normalizeStoredMessages(parsed);
         if (normalized.length > 0) {
+          restoredMessages = normalized;
           setMessages(normalized);
         }
       }
@@ -271,6 +277,21 @@ export function ChatInterface() {
         const detected = prefersDark ? "dark" : "light";
         setTheme(detected);
         document.documentElement.dataset.theme = detected;
+      }
+
+      if (restoredMessages.length === 0) {
+        const params = new URLSearchParams(window.location.search);
+        const sharedQuestion = params.get("q");
+        const sharedLang = params.get("lang");
+
+        if (sharedLang === "en" || sharedLang === "uz") {
+          setLang(sharedLang);
+        }
+
+        if (sharedQuestion && sharedQuestion.trim()) {
+          setInput(sharedQuestion.trim());
+          requestAnimationFrame(() => textareaRef.current?.focus());
+        }
       }
     } catch {}
     restoredRef.current = true;
@@ -766,6 +787,38 @@ export function ChatInterface() {
     });
   }, []);
 
+  const handleShare = useCallback(
+    (payload: {
+      method: "native" | "clipboard";
+      hasQuestion: boolean;
+      questionLength: number;
+      answerLength: number;
+    }) => {
+      pushAnalyticsEvent("askalisher_share_click", {
+        language: latestLangRef.current,
+        source: payload.method,
+        has_question: payload.hasQuestion,
+        prompt_length: payload.questionLength,
+        answer_length: payload.answerLength,
+      });
+    },
+    []
+  );
+
+  const getQuestionForAssistantMessage = useCallback(
+    (assistantIndex: number) => {
+      const previousUserMessage = [...messages.slice(0, assistantIndex)]
+        .reverse()
+        .find((candidate) => candidate.role === "user");
+
+      if (!previousUserMessage) return undefined;
+
+      const question = stripLanguagePrefix(getMessageText(previousUserMessage));
+      return question || undefined;
+    },
+    [messages]
+  );
+
   return (
     <div
       className="flex min-h-screen flex-col"
@@ -904,7 +957,9 @@ export function ChatInterface() {
               key={message.id}
               message={message}
               lang={lang}
+              question={message.role === "assistant" ? getQuestionForAssistantMessage(index) : undefined}
               onOutboundClick={handleOutboundClick}
+              onShare={handleShare}
               isStreaming={
                 isLoading &&
                 index === messages.length - 1 &&
