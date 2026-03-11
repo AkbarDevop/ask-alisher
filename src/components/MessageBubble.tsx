@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { UIMessage } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
 import { AlisherAvatar } from "./AlisherAvatar";
@@ -123,19 +123,20 @@ interface MessageBubbleProps {
   }) => void;
 }
 
-function buildShareUrl(question: string | undefined, lang: Language): string {
+function buildShareCardUrl(question: string | undefined, answer: string, lang: Language): string {
   const origin =
     typeof window !== "undefined" && window.location.origin
       ? window.location.origin
       : "https://askalishersadullaev.netlify.app";
-  const url = new URL(origin);
+  const url = new URL("/share", origin);
   url.searchParams.set("utm_source", "share");
   url.searchParams.set("utm_medium", "organic");
   url.searchParams.set("utm_campaign", "ask_alisher_answer_share");
   url.searchParams.set("lang", lang);
   if (question) {
-    url.searchParams.set("q", question);
+    url.searchParams.set("q", question.trim().slice(0, 300));
   }
+  url.searchParams.set("a", truncateForShare(answer, 600));
   return url.toString();
 }
 
@@ -153,7 +154,7 @@ function buildShareText(params: {
   const { lang, question, answer } = params;
   const t = UI_TEXT[lang];
   const trimmedQuestion = question?.trim();
-  const trimmedAnswer = truncateForShare(answer, 900);
+  const trimmedAnswer = truncateForShare(answer, 420);
 
   const lines = ["Ask Alisher", ""];
 
@@ -231,10 +232,12 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [, tick] = useState(0);
   const t = UI_TEXT[lang];
   const [createdAt] = useState(() => Date.now());
+  const shareUrlRef = useRef<string | null>(null);
 
   // Re-render every 60s to update timestamps
   useEffect(() => {
@@ -319,41 +322,51 @@ export function MessageBubble({
   }
 
   async function handleShare() {
-    const shareUrl = buildShareUrl(question, lang);
-    const shareText = buildShareText({
-      lang,
-      question,
-      answer: text,
-    });
-    const shareData = {
-      title: "Ask Alisher",
-      text: shareText,
-      url: shareUrl,
-    };
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
+    if (sharing) return;
+
+    setSharing(true);
+    try {
+      const shareUrl =
+        shareUrlRef.current || buildShareCardUrl(question, text, lang);
+      shareUrlRef.current = shareUrl;
+
+      const shareText = buildShareText({
+        lang,
+        question,
+        answer: text,
+      });
+      const shareData = {
+        title: "Ask Alisher",
+        text: shareText,
+        url: shareUrl,
+      };
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+          onShare?.({
+            method: "native",
+            hasQuestion: Boolean(question?.trim()),
+            questionLength: question?.trim().length || 0,
+            answerLength: text.trim().length,
+          });
+        } catch {
+          // User cancelled share
+        }
+      } else {
+        await navigator.clipboard.writeText(
+          `${shareText}\n${shareUrl}`
+        );
         onShare?.({
-          method: "native",
+          method: "clipboard",
           hasQuestion: Boolean(question?.trim()),
           questionLength: question?.trim().length || 0,
           answerLength: text.trim().length,
         });
-      } catch {
-        // User cancelled share
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
       }
-    } else {
-      await navigator.clipboard.writeText(
-        `${shareText}\n${shareUrl}`
-      );
-      onShare?.({
-        method: "clipboard",
-        hasQuestion: Boolean(question?.trim()),
-        questionLength: question?.trim().length || 0,
-        answerLength: text.trim().length,
-      });
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -678,6 +691,7 @@ export function MessageBubble({
               </button>
               <button
                 onClick={handleShare}
+                disabled={sharing}
                 className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] transition-colors"
                 style={{ color: "var(--muted)" }}
                 onMouseEnter={(e) =>
@@ -691,7 +705,7 @@ export function MessageBubble({
                   <path d="M12 2a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9.414l-1-1H12V3H4v2h1.586l-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h8Z" />
                   <path d="M5.354 9.354a.5.5 0 0 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 7.207V14a.5.5 0 0 1-1 0V7.207L5.354 9.354Z" />
                 </svg>
-                {t.share}
+                {sharing ? t.sharing : t.share}
               </button>
             </div>
           )}

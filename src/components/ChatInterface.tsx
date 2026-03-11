@@ -279,19 +279,24 @@ export function ChatInterface() {
         document.documentElement.dataset.theme = detected;
       }
 
-      if (restoredMessages.length === 0) {
-        const params = new URLSearchParams(window.location.search);
-        const sharedQuestion = params.get("q");
-        const sharedLang = params.get("lang");
+      const params = new URLSearchParams(window.location.search);
+      const sharedQuestion = params.get("q");
+      const sharedLang = params.get("lang");
+      const forceFresh = params.get("fresh") === "1";
 
-        if (sharedLang === "en" || sharedLang === "uz") {
-          setLang(sharedLang);
-        }
+      if (sharedLang === "en" || sharedLang === "uz") {
+        setLang(sharedLang);
+      }
 
-        if (sharedQuestion && sharedQuestion.trim()) {
-          setInput(sharedQuestion.trim());
-          requestAnimationFrame(() => textareaRef.current?.focus());
-        }
+      if (forceFresh) {
+        restoredMessages = [];
+        setMessages([]);
+        localStorage.removeItem("ask-alisher-chat");
+      }
+
+      if (sharedQuestion && sharedQuestion.trim() && (forceFresh || restoredMessages.length === 0)) {
+        setInput(sharedQuestion.trim());
+        requestAnimationFrame(() => textareaRef.current?.focus());
       }
     } catch {}
     restoredRef.current = true;
