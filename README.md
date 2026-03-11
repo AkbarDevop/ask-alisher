@@ -32,6 +32,8 @@ User question -> Gemini embedding -> pgvector similarity search -> date-aware Te
 2. The API route retrieves semantically similar chunks, with extra Telegram handling for recent/date-specific prompts.
 3. Gemini 2.5 Flash generates the answer using only retrieved context.
 4. The client streams the answer and renders source cards with snippets and topic labels separately.
+5. Low-signal Telegram export artifacts are demoted so the app prefers substantive posts over pinned-photo or pinned-voice placeholders.
+6. Durable rate limiting now runs through Supabase RPC instead of per-instance memory.
 
 ## Stack
 
@@ -68,9 +70,10 @@ Important:
 - This repo is already isolated to the `documents_alisher` table and `match_alisher_documents()` RPC.
 - It can share the same Supabase project as `ask-akmal` without overwriting `documents`.
 - `scripts/chunk-and-embed.ts` rebuilds only the `documents_alisher` corpus.
-- `scripts/backfill-topic-metadata.ts` can enrich the existing corpus with `topics` and `is_first_person` metadata without rebuilding embeddings.
+- `scripts/backfill-topic-metadata.ts` can enrich the existing corpus with `topics`, `is_first_person`, and `is_low_signal` metadata without rebuilding embeddings.
 - GTM is wired through `NEXT_PUBLIC_GTM_ID`, defaulting to `GTM-N3M3DLLG` for the Alisher site.
 - GA4 is wired through `NEXT_PUBLIC_GA_MEASUREMENT_IDS`, defaulting to `G-BWTQB4SFP4,G-2XNF6BSJG8`.
+- The app now writes a small first-party analytics stream into Supabase for local reporting scripts.
 
 ## Database
 
@@ -130,6 +133,12 @@ Or against production:
 EVAL_BASE_URL=https://askalishersadullaev.netlify.app npm run evals:core
 ```
 
+Print a first-party analytics summary from Supabase:
+
+```bash
+npm run analytics:summary -- --days=7
+```
+
 ## Run locally
 
 ```bash
@@ -144,7 +153,11 @@ Open `http://localhost:3000`.
 - The UI, prompt pack, and metadata are adapted for Alisher Sadullaev.
 - A small public bio seed file is included in `data/`.
 - The YouTube downloader now reads from `scripts/alisher-video-manifest.json`.
+- The YouTube manifest now includes extra long-form youth policy, girls' education, and collaboration talks.
 - Source cards now show a supporting snippet plus inferred topic tags.
+- Telegram retrieval now demotes low-signal export artifacts when better sources are available.
+- Durable rate limiting uses the `consume_ask_alisher_rate_limit()` Supabase RPC.
+- First-party analytics events are stored in `ask_alisher_analytics_events` for local reporting.
 - The repo includes a starter regression suite in `evals/alisher-core.json`.
 - The current roadmap is tracked in `docs/roadmap.md`.
 
@@ -157,6 +170,7 @@ src/
   lib/
 scripts/
   alisher-video-manifest.json
+  analytics-report.ts
   backfill-topic-metadata.ts
   chunk-and-embed.ts
   fetch-telegram-channel.ts

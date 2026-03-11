@@ -61,6 +61,11 @@ function getTopicLabel(topic: string, lang: Language): string {
     policy: { en: "Policy", uz: "Siyosat" },
     reading: { en: "Reading", uz: "Kitobxonlik" },
     regional_visits: { en: "Regional visits", uz: "Hududiy tashriflar" },
+    leadership: { en: "Leadership", uz: "Yetakchilik" },
+    technology: { en: "Technology", uz: "Texnologiya" },
+    grants_finance: { en: "Grants & finance", uz: "Grant va moliya" },
+    women_empowerment: { en: "Women & girls", uz: "Ayol-qizlar" },
+    international: { en: "International", uz: "Xalqaro" },
   };
 
   return labels[topic]?.[lang] || topic.replace(/_/g, " ");

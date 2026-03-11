@@ -15,6 +15,7 @@ import { SuggestedQuestions } from "./SuggestedQuestions";
 import { MessageBubble } from "./MessageBubble";
 import { ThinkingIndicator } from "./ThinkingIndicator";
 import { FollowUpChips } from "./FollowUpChips";
+import { ASK_ALISHER_ANALYTICS_EVENTS } from "@/lib/analytics";
 import { UI_TEXT, type Language } from "@/lib/prompts";
 
 type AnalyticsPayload = Record<string, string | number | boolean>;
@@ -41,6 +42,44 @@ const GA_MEASUREMENT_IDS = (
   .split(",")
   .map((id) => id.trim())
   .filter(Boolean);
+const ANALYTICS_SESSION_STORAGE_KEY = "ask-alisher-analytics-session";
+const COLLECTED_ANALYTICS_EVENTS = new Set<string>(ASK_ALISHER_ANALYTICS_EVENTS);
+
+function getAnalyticsSessionId(): string {
+  if (typeof window === "undefined") return "server";
+
+  const existing = window.sessionStorage.getItem(ANALYTICS_SESSION_STORAGE_KEY);
+  if (existing) return existing;
+
+  const next = crypto.randomUUID();
+  window.sessionStorage.setItem(ANALYTICS_SESSION_STORAGE_KEY, next);
+  return next;
+}
+
+function postAnalyticsEvent(event: string, payload: AnalyticsPayload) {
+  if (typeof window === "undefined" || !COLLECTED_ANALYTICS_EVENTS.has(event)) return;
+
+  const body = JSON.stringify({
+    event,
+    sessionId: getAnalyticsSessionId(),
+    payload,
+  });
+
+  if (navigator.sendBeacon) {
+    const blob = new Blob([body], { type: "application/json" });
+    navigator.sendBeacon("/api/analytics/collect", blob);
+    return;
+  }
+
+  void fetch("/api/analytics/collect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    keepalive: true,
+  }).catch(() => {
+    // Analytics collection is best-effort only.
+  });
+}
 
 function pushAnalyticsEvent(event: string, payload: AnalyticsPayload = {}) {
   if (typeof window === "undefined") return;
@@ -66,6 +105,7 @@ function pushAnalyticsEvent(event: string, payload: AnalyticsPayload = {}) {
       send_to: measurementId,
     });
   });
+  postAnalyticsEvent(event, eventPayload);
 }
 
 function getMessageText(message: UIMessage): string {

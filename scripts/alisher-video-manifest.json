@@ -82,5 +82,40 @@
     "channel": "Amerika Ovozi",
     "kind": "interview",
     "priority": "high"
+  },
+  {
+    "id": "pNwwkNEuP0s",
+    "title": "Ayol-qizlarimiz o’qishi kerak!",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "high"
+  },
+  {
+    "id": "3IthGNmlY1A",
+    "title": "Nodirbekning g’alabasi OAV nigohida",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
+  },
+  {
+    "id": "3kWftrpyAAw",
+    "title": "Strategic Collaboration for Youth Development",
+    "channel": "Webster University in Tashkent Official",
+    "kind": "talk",
+    "priority": "high"
+  },
+  {
+    "id": "OEvmI0j-c3U",
+    "title": "Strategik kuch",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "high"
+  },
+  {
+    "id": "LFPrvmBE-38",
+    "title": "Xalqaro imtihon tizimlari kompensatsiyasi",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
   }
 ]

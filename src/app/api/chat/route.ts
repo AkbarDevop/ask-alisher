@@ -4,25 +4,14 @@ import { getSupabase } from "@/lib/supabase";
 import { getEmbedding } from "@/lib/embeddings";
 import { KNOWLEDGE_BASE_MATCH_RPC, KNOWLEDGE_BASE_TABLE } from "@/lib/knowledge-base";
 import { ALISHER_SYSTEM_PROMPT } from "@/lib/prompts";
+import { extractMeaningfulSourceText, isLowSignalChunk } from "@/lib/content-signals";
+import { consumeAskAlisherRateLimit } from "@/lib/rate-limit";
 import { detectFirstPersonVoice, inferTopics } from "@/lib/topic-tags";
 
 export const maxDuration = 60;
 
-// --- Rate limiter (in-memory, per-IP, resets on redeploy) ---
-const rateMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 30; // max requests
-const RATE_WINDOW = 60_000; // per 60 seconds
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
-    return false;
-  }
-  entry.count++;
-  return entry.count > RATE_LIMIT;
-}
+const RATE_LIMIT = 30;
+const RATE_WINDOW_SECONDS = 60;
 
 // --- Input sanitization ---
 const MAX_MESSAGE_LENGTH = 2000;
@@ -361,6 +350,16 @@ function chunkIsFirstPerson(chunk: Chunk): boolean {
   return detectFirstPersonVoice(chunk.content);
 }
 
+function chunkIsLowSignal(chunk: Chunk): boolean {
+  const value = chunk.metadata?.is_low_signal;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    if (value === "true") return true;
+    if (value === "false") return false;
+  }
+  return isLowSignalChunk(chunk.content, chunk.source_type);
+}
+
 function buildQueryIntent(
   userMessage: string,
   options: { dateScope: QueryDateScope | null; telegramFocused: boolean }
@@ -429,6 +428,7 @@ function scoreChunkForSelection(
   let score = similarityScore + keywordScore;
 
   if (chunkIsFirstPerson(chunk)) score += 6;
+  if (chunkIsLowSignal(chunk)) score -= 26;
   if (queryTopics.length > 0) {
     const overlapCount = queryTopics.filter((topic) => chunkTopics.includes(topic)).length;
     score += overlapCount * 10;
@@ -595,14 +595,16 @@ async function fetchSupplementalTelegramChunks(
     if (!publishedAtMs) return false;
     return publishedAtMs >= effectiveScope.start.getTime() && publishedAtMs < effectiveScope.end.getTime();
   });
+  const preferredRows = filtered.filter((chunk) => !chunkIsLowSignal(chunk));
+  const scopedRows = preferredRows.length >= 12 ? preferredRows : filtered;
 
   const bySource = new Map<string, { chunk: Chunk; score: number; publishedAtMs: number; chunkIndex: number }>();
 
-  for (const chunk of filtered) {
+  for (const chunk of scopedRows) {
     const sourceKey = chunk.source_url || String(chunk.id || "");
     const candidate = {
       chunk,
-      score: scoreChunkAgainstKeywords(chunk, keywords),
+      score: scoreChunkAgainstKeywords(chunk, keywords) + (chunkIsLowSignal(chunk) ? -18 : 6),
       publishedAtMs: getChunkPublishedAtMs(chunk),
       chunkIndex: getChunkIndex(chunk),
     };
@@ -695,6 +697,11 @@ function selectContextChunks(
   return selected;
 }
 
+function preferHighSignalChunks(chunks: Chunk[]): Chunk[] {
+  const highSignal = chunks.filter((chunk) => !chunkIsLowSignal(chunk));
+  return highSignal.length >= 6 ? highSignal : chunks;
+}
+
 function getSourceTitle(chunk: Chunk): string {
   if (chunk.source_type === "telegram_post") {
     const publishedAtMs = getChunkPublishedAtMs(chunk);
@@ -731,21 +738,7 @@ function getSourceTitle(chunk: Chunk): string {
 }
 
 function stripSourceBoilerplate(chunk: Chunk): string {
-  return chunk.content
-    .split("\n")
-    .filter((line) => {
-      const trimmed = line.trim();
-      return ![
-        "Telegram channel post",
-        "Channel:",
-        "Post ID:",
-        "Date:",
-        "URL:",
-      ].some((prefix) => trimmed.startsWith(prefix));
-    })
-    .join(" ")
-    .replace(/\s+/gu, " ")
-    .trim();
+  return extractMeaningfulSourceText(chunk.content);
 }
 
 function truncateSnippet(text: string, maxLength = 220): string {
@@ -758,6 +751,7 @@ function truncateSnippet(text: string, maxLength = 220): string {
 }
 
 function buildSourceSnippet(chunk: Chunk, userMessage: string): string {
+  if (chunkIsLowSignal(chunk)) return "";
   const cleaned = stripSourceBoilerplate(chunk);
   if (!cleaned) return "";
 
@@ -803,10 +797,21 @@ export async function POST(req: Request) {
     req.headers.get("x-real-ip") ||
     "unknown";
 
-  if (isRateLimited(ip)) {
+  const rateLimit = await consumeAskAlisherRateLimit(ip, RATE_LIMIT, RATE_WINDOW_SECONDS);
+  if (!rateLimit.allowed) {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((Date.parse(rateLimit.resetAt) - Date.now()) / 1000)
+    );
     return new Response(
       JSON.stringify({ error: "Too many requests. Please wait a moment." }),
-      { status: 429, headers: { "Content-Type": "application/json" } }
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfterSeconds),
+        },
+      }
     );
   }
 
@@ -924,6 +929,7 @@ export async function POST(req: Request) {
         telegramFocused: telegramFocusedQuestion,
       })
     : [];
+  chunks = preferHighSignalChunks(chunks);
 
   const selectedChunks = chunks?.length
     ? selectContextChunks(chunks, {
@@ -976,11 +982,12 @@ export async function POST(req: Request) {
     dateScope: userDateScope,
     telegramFocused: telegramFocusedQuestion,
   });
+  const citationChunks = preferHighSignalChunks(selectedChunks);
 
-  if (attachSources && selectedChunks.length) {
+  if (attachSources && citationChunks.length) {
     const seen = new Set<string>();
-    const hasTelegramPost = selectedChunks.some((chunk) => chunk.source_type === "telegram_post");
-    for (const c of selectedChunks) {
+    const hasTelegramPost = citationChunks.some((chunk) => chunk.source_type === "telegram_post");
+    for (const c of citationChunks) {
       if (hasTelegramPost && c.source_type === "telegram") {
         continue;
       }

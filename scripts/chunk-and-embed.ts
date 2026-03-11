@@ -21,6 +21,7 @@ import {
   detectLanguageHeuristic,
   detectFirstPersonVoice,
   inferTopics,
+  isLowSignalChunk,
   parseStructuredDocument,
   chunkText,
   loadLocalEnv,
@@ -268,20 +269,25 @@ async function main() {
         }
       }
 
-      const rows = batch.map((chunk, j) => ({
-        content: buildChunkContent(sourceType, chunk, structured.metadata),
-        embedding: embeddings ? JSON.stringify(embeddings[j]) : null,
-        source_type: sourceType,
-        source_url: sourceUrl,
-        language,
-        metadata: {
-          file,
-          chunk_index: i + j,
-          topics: inferTopics(chunk),
-          is_first_person: detectFirstPersonVoice(chunk),
-          ...structured.metadata,
-        },
-      }));
+      const rows = batch.map((chunk, j) => {
+        const chunkContent = buildChunkContent(sourceType, chunk, structured.metadata);
+
+        return {
+          content: chunkContent,
+          embedding: embeddings ? JSON.stringify(embeddings[j]) : null,
+          source_type: sourceType,
+          source_url: sourceUrl,
+          language,
+          metadata: {
+            file,
+            chunk_index: i + j,
+            topics: inferTopics(chunkContent),
+            is_first_person: detectFirstPersonVoice(chunkContent),
+            is_low_signal: isLowSignalChunk(chunkContent, sourceType),
+            ...structured.metadata,
+          },
+        };
+      });
 
       await withRetry("Insert batch", async () => {
         const { error } = await supabase.from(KNOWLEDGE_BASE_TABLE).insert(rows);

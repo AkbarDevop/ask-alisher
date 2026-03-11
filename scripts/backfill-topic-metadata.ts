@@ -9,6 +9,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   detectFirstPersonVoice,
   inferTopics,
+  isLowSignalChunk,
   loadLocalEnv,
   parseCliArgs,
   sleep,
@@ -31,18 +32,27 @@ const DEFAULT_BATCH_SIZE = 150;
 type DocumentRow = {
   id: number;
   content: string;
+  source_type: string;
   metadata: Record<string, unknown> | null;
 };
 
-function metadataNeedsUpdate(row: DocumentRow, nextTopics: string[], nextFirstPerson: boolean): boolean {
+function metadataNeedsUpdate(
+  row: DocumentRow,
+  nextTopics: string[],
+  nextFirstPerson: boolean,
+  nextLowSignal: boolean
+): boolean {
   const currentTopics = Array.isArray(row.metadata?.topics)
     ? row.metadata?.topics.filter((item): item is string => typeof item === "string")
     : [];
   const currentFirstPerson = row.metadata?.is_first_person;
+  const currentLowSignal = row.metadata?.is_low_signal;
 
   if (currentTopics.length !== nextTopics.length) return true;
   if (currentTopics.some((topic, index) => topic !== nextTopics[index])) return true;
   if (typeof currentFirstPerson !== "boolean") return true;
+  if (typeof currentLowSignal !== "boolean") return true;
+  if (currentLowSignal !== nextLowSignal) return true;
 
   return currentFirstPerson !== nextFirstPerson;
 }
@@ -63,7 +73,7 @@ async function main() {
   while (true) {
     const { data, error } = await supabase
       .from(KNOWLEDGE_BASE_TABLE)
-      .select("id, content, metadata")
+      .select("id, content, source_type, metadata")
       .gt("id", cursor)
       .order("id", { ascending: true })
       .limit(batchSize);
@@ -81,8 +91,9 @@ async function main() {
     for (const row of rows) {
       const nextTopics = inferTopics(row.content);
       const nextFirstPerson = detectFirstPersonVoice(row.content);
+      const nextLowSignal = isLowSignalChunk(row.content, row.source_type);
 
-      if (!metadataNeedsUpdate(row, nextTopics, nextFirstPerson)) {
+      if (!metadataNeedsUpdate(row, nextTopics, nextFirstPerson, nextLowSignal)) {
         continue;
       }
 
@@ -93,6 +104,7 @@ async function main() {
             ...(row.metadata || {}),
             topics: nextTopics,
             is_first_person: nextFirstPerson,
+            is_low_signal: nextLowSignal,
           },
         })
         .eq("id", row.id);

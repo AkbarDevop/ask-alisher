@@ -4,6 +4,7 @@ import {
   detectFirstPersonVoice,
   inferTopics,
 } from "../../src/lib/topic-tags";
+import { isLowSignalChunk, isLowSignalTelegramContent } from "../../src/lib/content-signals";
 
 const DEFAULT_CHUNK_SIZE = 600;
 const DEFAULT_CHUNK_OVERLAP = 100;
@@ -279,4 +280,4 @@ export function parseStructuredDocument(raw: string): {
   };
 }
 
-export { detectFirstPersonVoice, inferTopics };
+export { detectFirstPersonVoice, inferTopics, isLowSignalChunk, isLowSignalTelegramContent };

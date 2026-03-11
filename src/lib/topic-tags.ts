@@ -5,7 +5,7 @@ const TOPIC_PATTERNS: Array<{ topic: string; patterns: RegExp[] }> = [
   },
   {
     topic: "education",
-    patterns: [/\b(education|learning|o'quv|ta'lim|imtihon|ielts|school|university|stanford|maktab|universitet)\b/iu],
+    patterns: [/\b(education|learning|o'quv|ta'lim|imtihon|ielts|school|university|stanford|maktab|universitet|grant|stipendiya|exam)\b/iu],
   },
   {
     topic: "entrepreneurship",
@@ -21,7 +21,7 @@ const TOPIC_PATTERNS: Array<{ topic: string; patterns: RegExp[] }> = [
   },
   {
     topic: "policy",
-    patterns: [/\b(senator|senate|policy|davlat|government|agentligi|federation|federatsiya|hukumat)\b/iu],
+    patterns: [/\b(senator|senate|policy|davlat|government|agentligi|federation|federatsiya|hukumat|islohot|reform|qonun)\b/iu],
   },
   {
     topic: "reading",
@@ -33,6 +33,26 @@ const TOPIC_PATTERNS: Array<{ topic: string; patterns: RegExp[] }> = [
       /\b(fergana|andijan|namangan|hudud|hududlar|viloyat|viloyatlar|region|regions|samarqand|buxoro|xorazm|qashqadaryo|surxondaryo)\b/iu,
       /tashkentdan tashqar/i,
     ],
+  },
+  {
+    topic: "leadership",
+    patterns: [/\b(leader|leaders|leadership|yetakchi|yetakchilik|mission|vision|mas'uliyat)\b/iu],
+  },
+  {
+    topic: "technology",
+    patterns: [/\b(ai|artificial intelligence|technology|tech|digital|innovation|innovatsiya|raqamli|it)\b/iu],
+  },
+  {
+    topic: "grants_finance",
+    patterns: [/\b(grant|grants|loan|loans|credit|investment|investor|moliy[a-z]+|subsidiya|subsidy|kompensatsiya)\b/iu],
+  },
+  {
+    topic: "women_empowerment",
+    patterns: [/\b(women|woman|girls|girl|ayol|ayollar|qizlar|qiz)\b/iu],
+  },
+  {
+    topic: "international",
+    patterns: [/\b(global|international|amerika|europe|xorij|foreign|world|webster|stanford)\b/iu],
   },
 ];
 

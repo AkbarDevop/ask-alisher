@@ -6,6 +6,7 @@
 2. Improve retrieval weighting
 3. Add regression evaluation prompts
 4. Harden public traffic protections
+5. Add first-party analytics reporting
 
 ## In progress
 
@@ -23,6 +24,7 @@
 - Boost first-person chunks and demote generic profile material when it is not relevant
 - Infer topic tags and use them during reranking
 - Surface supporting source snippets and topic labels in the UI
+- Demote low-signal Telegram export artifacts so source cards prefer substantive posts
 
 ### 3. Evaluation set
 
@@ -30,16 +32,22 @@
 - CLI runner added in `scripts/run-evals.ts`
 - Current checks cover biography, recency, entrepreneurship, chess, reading, regions, and refusal quality
 
+### 4. Traffic and analytics
+
+- Durable rate limiting added through the `consume_ask_alisher_rate_limit()` Supabase RPC
+- First-party analytics ingestion added via `/api/analytics/collect`
+- Local reporting script added in `scripts/analytics-report.ts`
+
 ## Next
 
-### 4. Expand eval coverage
+### 5. Expand eval coverage
 
 - Grow the eval set from the starter pack to 30-50 prompts
 - Track answer quality, source quality, recency handling, and refusal quality
 - Add expected source-type coverage and language-specific checks
 
-### 5. Risk management
+### 6. Risk management
 
-- Replace in-memory rate limiting with a durable external limiter
 - Add Turnstile or equivalent bot friction
 - Return graceful overload responses instead of hanging requests
+- Decide whether first-party analytics should stay script-only or get a protected dashboard
