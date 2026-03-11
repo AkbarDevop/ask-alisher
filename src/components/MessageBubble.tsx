@@ -92,6 +92,7 @@ interface MessageBubbleProps {
   message: UIMessage;
   lang?: Language;
   isStreaming?: boolean;
+  onOutboundClick?: (url: string, linkText: string) => void;
 }
 
 // SVG logo icons for source types
@@ -144,7 +145,12 @@ function SourceIcon({ type }: { type: string }) {
   }
 }
 
-export function MessageBubble({ message, lang = "en", isStreaming = false }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  lang = "en",
+  isStreaming = false,
+  onOutboundClick,
+}: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -248,6 +254,11 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
 
   if (!text) return null;
 
+  const trackOutboundClick = (url: string, linkText: string) => {
+    if (!url || !onOutboundClick) return;
+    onOutboundClick(url, linkText);
+  };
+
   return (
     <div
       className={`group animate-fade-in flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}
@@ -343,6 +354,7 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
                       rel="noopener noreferrer"
                       className="underline underline-offset-2"
                       style={{ color: "var(--input-focus)" }}
+                      onClick={() => trackOutboundClick(href || "", typeof children === "string" ? children : "Answer link")}
                     >
                       {children}
                     </a>
@@ -409,6 +421,7 @@ export function MessageBubble({ message, lang = "en", isStreaming = false }: Mes
                           e.currentTarget.style.background = "transparent";
                           e.currentTarget.style.color = "var(--muted)";
                         }}
+                        onClick={() => trackOutboundClick(s.url, s.title)}
                       >
                         <div
                           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"

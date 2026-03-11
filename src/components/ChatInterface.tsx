@@ -904,6 +904,7 @@ export function ChatInterface() {
               key={message.id}
               message={message}
               lang={lang}
+              onOutboundClick={handleOutboundClick}
               isStreaming={
                 isLoading &&
                 index === messages.length - 1 &&
