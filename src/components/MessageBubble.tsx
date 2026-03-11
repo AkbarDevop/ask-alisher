@@ -88,6 +88,27 @@ function shouldSuppressSources(answer: string): boolean {
   ].some((pattern) => pattern.test(normalized));
 }
 
+function shouldShowFreshestSourceOnly(answer: string): boolean {
+  const normalized = answer.trim().toLowerCase();
+
+  return [
+    /i haven't shared any telegram posts/u,
+    /i haven't posted on telegram/u,
+    /the most recent post .*publicly available/u,
+    /the latest post .*publicly available/u,
+    /my most recent telegram post/u,
+    /telegramda .* post ulashmaganman/u,
+    /eng so'nggi .* post .* ochiq/u,
+    /oxirgi .* telegram postim/u,
+  ].some((pattern) => pattern.test(normalized));
+}
+
+function getSourceTimestamp(publishedAt?: string): number {
+  if (!publishedAt) return Number.NEGATIVE_INFINITY;
+  const timestamp = Date.parse(publishedAt);
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+}
+
 interface MessageBubbleProps {
   message: UIMessage;
   lang?: Language;
@@ -217,11 +238,20 @@ export function MessageBubble({
   }
 
   const suppressSources = !isUser && shouldSuppressSources(text);
-  const displaySources = suppressSources
+  const baseSources = suppressSources
     ? []
     : sources.some((source) => source.type === "telegram_post")
       ? sources.filter((source) => source.type !== "telegram")
       : sources;
+  const displaySources =
+    !isUser && shouldShowFreshestSourceOnly(text)
+      ? (() => {
+          const freshestSource = [...baseSources].sort(
+            (left, right) => getSourceTimestamp(right.publishedAt) - getSourceTimestamp(left.publishedAt)
+          )[0];
+          return freshestSource ? [freshestSource] : baseSources;
+        })()
+      : baseSources;
 
   const timestamp = timeAgo(new Date(createdAt));
 
