@@ -679,8 +679,8 @@ export function buildTelegramExamplesText() {
 
 export function getTelegramRecentCommandPrompt(language: Language) {
   return language === "en"
-    ? "Based on the freshest public Telegram posts, interviews, and talks, what 3 or 4 themes are being emphasized most recently? Answer briefly and use up-to-date public context."
-    : "Eng yangi ommaviy Telegram postlari, intervyular va chiqishlarga qarab, hozir eng ko'p ta'kidlanayotgan 3-4 mavzuni qisqacha ayting. Faqat yangi va ommaviy kontekstga tayaning.";
+    ? "Using only the freshest public Telegram posts, interviews, and talks from the most recent period in the corpus, tell me the 3 or 4 themes being emphasized right now. If the newest public material is older than expected, say the exact latest date instead of pretending it is recent."
+    : "Faqat korpusdagi eng yangi ommaviy Telegram postlari, intervyular va chiqishlarga tayangan holda, hozir eng ko'p ta'kidlanayotgan 3-4 mavzuni ayting. Agar eng yangi ommaviy material kutilganidan eski bo'lsa, uni recent deb ko'rsatmay, aniq oxirgi sanani ayting.";
 }
 
 export function buildTelegramResetText(language: Language) {

@@ -73,6 +73,7 @@ async function handleTelegramConversationTurn(params: {
   source: "message" | "quick_action";
   quickAction?: string;
   fallbackLanguage?: "uz" | "en";
+  useHistory?: boolean;
 }) {
   const rateLimit = await consumeAskAlisherRateLimit(
     `telegram:${params.chatId}`,
@@ -107,7 +108,8 @@ async function handleTelegramConversationTurn(params: {
     params.source === "quick_action"
       ? params.fallbackLanguage || conversationState.language
       : getTelegramMessageLanguage(params.text);
-  const conversation = [...conversationState.messages, { role: "user" as const, content: params.text }].slice(-10);
+  const baseMessages = params.useHistory === false ? [] : conversationState.messages;
+  const conversation = [...baseMessages, { role: "user" as const, content: params.text }].slice(-10);
 
   try {
     const { answer, sources } = await requestAskAlisherReply({
@@ -358,6 +360,7 @@ export async function POST(req: Request) {
       source: "quick_action",
       quickAction: "command_recent",
       fallbackLanguage: "uz",
+      useHistory: false,
     });
 
     return Response.json({ ok: true });

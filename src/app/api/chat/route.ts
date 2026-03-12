@@ -373,7 +373,10 @@ function buildQueryIntent(
 ): QueryIntent {
   const normalized = userMessage.toLowerCase();
   const prefersRecent = Boolean(options.dateScope) || RECENT_QUERY_PATTERN.test(normalized);
-  const prefersTelegram = options.telegramFocused || prefersRecent;
+  const mentionsBroaderPublicSources =
+    /\b(interview|interviews|talk|talks|article|articles|intervyu|intervyular|chiqish|chiqishlar|maqola|maqolalar)\b/iu
+      .test(normalized);
+  const prefersTelegram = options.telegramFocused || (prefersRecent && !mentionsBroaderPublicSources);
   const prefersBiography =
     /\b(who are you|who is alisher|biography|bio|background|career|roles?|about you|about him)\b/iu
       .test(normalized) ||
@@ -857,7 +860,10 @@ export async function POST(req: Request) {
   const userMessage = stripLanguageDirective(messages[messages.length - 1]?.content || "");
   const retrievalQuery = buildRetrievalQuery(messages) || userMessage;
   const userDateScope = parseQueryDateScope(userMessage);
-  const telegramFocusedQuestion = TELEGRAM_QUERY_PATTERN.test(userMessage);
+  const multiSourceRecencyQuestion =
+    /\b(interview|interviews|talk|talks|article|articles|intervyu|intervyular|chiqish|chiqishlar|maqola|maqolalar)\b/iu
+      .test(userMessage);
+  const telegramFocusedQuestion = TELEGRAM_QUERY_PATTERN.test(userMessage) && !multiSourceRecencyQuestion;
 
   // --- Fetch context: vector search (primary) + keyword fallback ---
   let chunks: Chunk[] | null = null;
