@@ -16,6 +16,8 @@ type TelegramReplyMarkup = {
   inline_keyboard: Array<Array<{ text: string; url: string }>>;
 };
 
+type TelegramParseMode = "HTML";
+
 type StoredTelegramTurn = {
   metadata: Record<string, unknown> | null;
 };
@@ -142,13 +144,15 @@ export async function sendTelegramMessage(params: {
   text: string;
   replyToMessageId?: number;
   replyMarkup?: TelegramReplyMarkup;
+  parseMode?: TelegramParseMode;
 }) {
   await sendTelegramApi("sendMessage", {
     chat_id: params.chatId,
-    text: trimTelegramMessage(params.text),
+    text: params.text,
     reply_to_message_id: params.replyToMessageId,
     disable_web_page_preview: true,
     reply_markup: params.replyMarkup,
+    parse_mode: params.parseMode,
   });
 }
 
@@ -317,6 +321,106 @@ function trimTelegramSourceLabel(label: string, maxLength = 32) {
   return `${label.slice(0, Math.max(maxLength - 3, 0)).trimEnd()}...`;
 }
 
+function escapeTelegramHtml(text: string) {
+  return text
+    .replace(/&/gu, "&amp;")
+    .replace(/</gu, "&lt;")
+    .replace(/>/gu, "&gt;");
+}
+
+function normalizeTelegramAnswer(answer: string) {
+  return answer
+    .replace(/\r\n/gu, "\n")
+    .replace(/[ \t]+\n/gu, "\n")
+    .replace(/\n{3,}/gu, "\n\n")
+    .trim();
+}
+
+function splitTelegramAnswerIntoParagraphs(answer: string): string[] {
+  const normalized = normalizeTelegramAnswer(answer);
+  if (!normalized) return [];
+
+  const existingParagraphs = normalized
+    .split(/\n{2,}/u)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  if (existingParagraphs.length > 1) {
+    return existingParagraphs;
+  }
+
+  const withTransitionBreaks = normalized.replace(
+    /\s+(?=(Bundan tashqari|Shuningdek|Shu bilan birga|Masalan|Xususan|Ayniqsa|Natijada|Bu orqali|Bu tizim orqali|Finally|Also|In addition|For example|That means|As a result)\b)/giu,
+    "\n\n"
+  );
+  const transitionParagraphs = withTransitionBreaks
+    .split(/\n{2,}/u)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  if (transitionParagraphs.length > 1) {
+    return transitionParagraphs;
+  }
+
+  const sentences = normalized
+    .split(/(?<=[.!?])\s+/u)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+
+  if (sentences.length <= 1) {
+    return [normalized];
+  }
+
+  const paragraphs: string[] = [];
+  let current = "";
+
+  for (const sentence of sentences) {
+    const candidate = current ? `${current} ${sentence}` : sentence;
+    const sentenceCount = current.split(/(?<=[.!?])\s+/u).filter(Boolean).length;
+
+    if (current && (candidate.length > 260 || sentenceCount >= 2)) {
+      paragraphs.push(current);
+      current = sentence;
+      continue;
+    }
+
+    current = candidate;
+  }
+
+  if (current) {
+    paragraphs.push(current);
+  }
+
+  return paragraphs;
+}
+
+function formatTelegramAnswerText(answer: string): string {
+  const paragraphs = splitTelegramAnswerIntoParagraphs(answer);
+  if (!paragraphs.length) {
+    return trimTelegramMessage(escapeTelegramHtml(answer.trim()));
+  }
+
+  const [firstParagraph, ...rest] = paragraphs;
+  const formattedParagraphs: string[] = [];
+  const firstSentenceMatch = firstParagraph.match(/^.+?[.!?](?=\s|$)/u);
+
+  if (firstSentenceMatch && firstSentenceMatch[0].trim().length <= 180) {
+    const lead = firstSentenceMatch[0].trim();
+    const remainder = firstParagraph.slice(firstSentenceMatch[0].length).trim();
+    formattedParagraphs.push(
+      remainder
+        ? `<b>${escapeTelegramHtml(lead)}</b>\n${escapeTelegramHtml(remainder)}`
+        : `<b>${escapeTelegramHtml(lead)}</b>`
+    );
+  } else {
+    formattedParagraphs.push(escapeTelegramHtml(firstParagraph));
+  }
+
+  for (const paragraph of rest) {
+    formattedParagraphs.push(escapeTelegramHtml(paragraph));
+  }
+
+  return trimTelegramMessage(formattedParagraphs.join("\n\n"));
+}
+
 function getTelegramSourceLabel(source: TelegramSource, index: number, language: Language) {
   const title = source.title?.trim();
   const postMatch = title?.match(/Post #\d+/u);
@@ -360,20 +464,27 @@ export function formatTelegramAnswer(
 ): {
   text: string;
   replyMarkup?: TelegramReplyMarkup;
+  parseMode?: TelegramParseMode;
 } {
+  const formattedAnswer = formatTelegramAnswerText(answer);
+
   if (!sources.length || shouldSuppressTelegramSources(answer)) {
-    return { text: trimTelegramMessage(answer) };
+    return {
+      text: formattedAnswer,
+      parseMode: "HTML",
+    };
   }
 
   const sourceHint =
     language === "uz"
-      ? "Manbalar pastdagi tugmalarda."
-      : "Sources are linked in the buttons below.";
-  const combined = `${answer.trim()}\n\n${sourceHint}`;
+      ? "<i>Manbalar pastdagi tugmalarda.</i>"
+      : "<i>Sources are linked in the buttons below.</i>";
+  const combined = `${formattedAnswer}\n\n${sourceHint}`;
 
   return {
-    text: trimTelegramMessage(combined.length <= TELEGRAM_MAX_MESSAGE_LENGTH ? combined : answer),
+    text: combined.length <= TELEGRAM_MAX_MESSAGE_LENGTH ? combined : formattedAnswer,
     replyMarkup: buildTelegramSourceKeyboard(sources, language),
+    parseMode: "HTML",
   };
 }
 

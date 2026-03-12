@@ -200,6 +200,7 @@ export async function POST(req: Request) {
       replyToMessageId: message.message_id,
       text: formattedReply.text,
       replyMarkup: formattedReply.replyMarkup,
+      parseMode: formattedReply.parseMode,
     });
   } catch (error) {
     console.error("Telegram webhook handling failed:", error);
