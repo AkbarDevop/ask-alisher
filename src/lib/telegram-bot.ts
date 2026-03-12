@@ -52,13 +52,6 @@ function detectLanguage(text: string): Language {
   return "uz";
 }
 
-function detectTelegramUiLanguage(languageCode?: string | null): Language {
-  if (typeof languageCode === "string" && languageCode.toLowerCase().startsWith("en")) {
-    return "en";
-  }
-  return "uz";
-}
-
 function dedupeSources(sources: TelegramSource[]) {
   const seen = new Set<string>();
   return sources.filter((source) => {
@@ -309,37 +302,11 @@ export function formatTelegramAnswer(answer: string, sources: TelegramSource[], 
 }
 
 export function buildTelegramWelcomeText(siteUrl: string) {
-  return buildTelegramWelcomeTextForLanguage(siteUrl, "uz");
-}
-
-export function buildTelegramHelpText(siteUrl: string) {
-  return buildTelegramHelpTextForLanguage(siteUrl, "uz");
-}
-
-export function buildTelegramWelcomeTextForLanguage(siteUrl: string, language: Language) {
-  if (language === "en") {
-    return [
-      "Hello. I'm the Ask Alisher bot.",
-      "",
-      "Send a question and I'll answer using Alisher Sadullaev's public posts, interviews, and talks.",
-      "",
-      "Try prompts like:",
-      "• What mistakes do young founders make most often?",
-      "• What matters most for young people outside Tashkent?",
-      "• What does chess teach young people?",
-      "",
-      "Commands:",
-      "/new — start a fresh chat",
-      "/help — examples and guidance",
-      "",
-      `Web version: ${siteUrl}`,
-    ].join("\n");
-  }
-
   return [
     "Assalomu alaykum. Men Ask Alisher botiman.",
     "",
     "Savolingizni yuboring. Men Alisher Sadullaevning ommaviy postlari, intervyulari va chiqishlari asosida javob beraman.",
+    "Xohlasangiz, savolni inglizcha ham yozishingiz mumkin.",
     "",
     "Masalan, shularni so'rab ko'ring:",
     "• Yosh founderlar eng ko'p qanday xato qiladi?",
@@ -354,23 +321,7 @@ export function buildTelegramWelcomeTextForLanguage(siteUrl: string, language: L
   ].join("\n");
 }
 
-export function buildTelegramHelpTextForLanguage(siteUrl: string, language: Language) {
-  if (language === "en") {
-    return [
-      "Send your question as plain text. English and Uzbek both work.",
-      "",
-      "Good examples:",
-      "• What mistakes do young founders make most often?",
-      "• What does chess teach young people?",
-      "• What opportunities matter most for youth outside Tashkent?",
-      "• How do you balance public service with working closely with young people?",
-      "",
-      "Answers are grounded in public posts, interviews, and talks.",
-      "/new — clear the conversation and start over",
-      `Web version: ${siteUrl}`,
-    ].join("\n");
-  }
-
+export function buildTelegramHelpText(siteUrl: string) {
   return [
     "Savolni oddiy matn ko'rinishida yuboring. O'zbekcha ham, inglizcha ham yozishingiz mumkin.",
     "",
@@ -402,10 +353,6 @@ export function buildTelegramRateLimitReply(language: Language) {
   return language === "en"
     ? "Too many requests were sent. Please wait a bit and try again."
     : "Juda ko'p so'rov yuborildi. Iltimos, biroz kutib qayta urinib ko'ring.";
-}
-
-export function getTelegramUiLanguage(languageCode?: string | null) {
-  return detectTelegramUiLanguage(languageCode);
 }
 
 export function getTelegramMessageLanguage(text: string) {

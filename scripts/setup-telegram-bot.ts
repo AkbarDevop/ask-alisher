@@ -16,16 +16,16 @@ const ENGLISH_COMMANDS = [
 ];
 
 const DEFAULT_DESCRIPTION =
-  "Alisher Sadullaevning ommaviy postlari, intervyulari va chiqishlari asosida savollarga javob beradigan bot. Yoshlar, ta'lim, tadbirkorlik, hududiy imkoniyatlar va shaxmat haqida so'rang.";
+  "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive. Savol yuboring va javobni uning ommaviy postlari, intervyulari hamda chiqishlari asosida oling.";
 
 const ENGLISH_DESCRIPTION =
-  "Ask questions about Alisher Sadullaev's public views on youth, education, entrepreneurship, regional opportunity, and chess.";
+  "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive. Ask a question and get an answer grounded in his public posts, interviews, and talks.";
 
 const DEFAULT_SHORT_DESCRIPTION =
-  "Alisher Sadullaevga savol bering. Javoblar ommaviy manbalar asosida.";
+  "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive.";
 
 const ENGLISH_SHORT_DESCRIPTION =
-  "Ask Alisher Sadullaev questions grounded in public sources.";
+  "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive.";
 
 function getRequiredEnv(name: string) {
   const value = process.env[name];
