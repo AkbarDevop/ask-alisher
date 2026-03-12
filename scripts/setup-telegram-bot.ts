@@ -137,7 +137,7 @@ async function main() {
   await telegramCall("setWebhook", {
     url: webhookUrl,
     secret_token: webhookSecret,
-    allowed_updates: ["message"],
+    allowed_updates: ["message", "callback_query"],
     drop_pending_updates: true,
   });
 

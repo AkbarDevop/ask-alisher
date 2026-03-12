@@ -13,6 +13,9 @@ export const ASK_ALISHER_ANALYTICS_EVENTS = [
   "askalisher_theme_toggle",
   "askalisher_new_chat",
   "askalisher_retry_click",
+  "askalisher_telegram_turn",
+  "askalisher_telegram_feedback",
+  "askalisher_telegram_quick_action",
 ] as const;
 
 export const ASK_ALISHER_ANALYTICS_TABLE = "ask_alisher_analytics_events";

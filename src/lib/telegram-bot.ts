@@ -13,17 +13,29 @@ type TelegramSource = {
 };
 
 type TelegramReplyMarkup = {
-  inline_keyboard: Array<Array<{ text: string; url: string }>>;
+  inline_keyboard: Array<Array<{ text: string; url?: string; callback_data?: string }>>;
 };
 
 type TelegramParseMode = "HTML";
 
 type StoredTelegramTurn = {
+  language?: string | null;
   metadata: Record<string, unknown> | null;
+};
+
+type TelegramConversationState = {
+  messages: ChatMessage[];
+  language: Language;
 };
 
 const TELEGRAM_TURN_EVENT = "askalisher_telegram_turn";
 const TELEGRAM_MAX_MESSAGE_LENGTH = 3900;
+
+const TELEGRAM_CALLBACK_MORE = "tg:more";
+const TELEGRAM_CALLBACK_SHORTER = "tg:short";
+const TELEGRAM_CALLBACK_EXAMPLE = "tg:example";
+const TELEGRAM_CALLBACK_FEEDBACK_UP = "tg:fb:up";
+const TELEGRAM_CALLBACK_FEEDBACK_DOWN = "tg:fb:down";
 
 function getSupabaseServiceRoleClient() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -139,6 +151,18 @@ export async function sendTelegramTyping(chatId: number) {
   });
 }
 
+export async function answerTelegramCallbackQuery(params: {
+  callbackQueryId: string;
+  text?: string;
+  showAlert?: boolean;
+}) {
+  await sendTelegramApi("answerCallbackQuery", {
+    callback_query_id: params.callbackQueryId,
+    text: params.text,
+    show_alert: params.showAlert,
+  });
+}
+
 export async function sendTelegramMessage(params: {
   chatId: number;
   text: string;
@@ -156,6 +180,38 @@ export async function sendTelegramMessage(params: {
   });
 }
 
+export async function storeTelegramEvent(params: {
+  chatId: number;
+  eventName: string;
+  language?: Language;
+  telegramUserId?: number;
+  telegramUsername?: string;
+  telegramFirstName?: string;
+  telegramMessageId?: number;
+  metadata?: Record<string, unknown>;
+}) {
+  const supabase = getSupabaseServiceRoleClient();
+  const { error } = await supabase.from(ASK_ALISHER_ANALYTICS_TABLE).insert({
+    event_name: params.eventName,
+    session_id: getTelegramSessionId(params.chatId),
+    language: params.language ?? null,
+    hostname: "telegram",
+    page_path: "/telegram",
+    metadata: {
+      telegram_chat_id: params.chatId,
+      telegram_user_id: params.telegramUserId ?? null,
+      telegram_username: params.telegramUsername ?? null,
+      telegram_first_name: params.telegramFirstName ?? null,
+      telegram_message_id: params.telegramMessageId ?? null,
+      ...(params.metadata || {}),
+    },
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
 export async function storeTelegramTurn(params: {
   chatId: number;
   role: "user" | "assistant";
@@ -165,35 +221,29 @@ export async function storeTelegramTurn(params: {
   telegramUsername?: string;
   telegramFirstName?: string;
   telegramMessageId?: number;
+  metadata?: Record<string, unknown>;
 }) {
-  const supabase = getSupabaseServiceRoleClient();
-  const { error } = await supabase.from(ASK_ALISHER_ANALYTICS_TABLE).insert({
-    event_name: TELEGRAM_TURN_EVENT,
-    session_id: getTelegramSessionId(params.chatId),
+  await storeTelegramEvent({
+    chatId: params.chatId,
+    eventName: TELEGRAM_TURN_EVENT,
     language: params.language,
-    hostname: "telegram",
-    page_path: "/telegram",
+    telegramUserId: params.telegramUserId,
+    telegramUsername: params.telegramUsername,
+    telegramFirstName: params.telegramFirstName,
+    telegramMessageId: params.telegramMessageId,
     metadata: {
       role: params.role,
       text: cleanTelegramText(params.text),
-      telegram_chat_id: params.chatId,
-      telegram_user_id: params.telegramUserId ?? null,
-      telegram_username: params.telegramUsername ?? null,
-      telegram_first_name: params.telegramFirstName ?? null,
-      telegram_message_id: params.telegramMessageId ?? null,
+      ...(params.metadata || {}),
     },
   });
-
-  if (error) {
-    throw new Error(error.message);
-  }
 }
 
-export async function fetchTelegramHistory(chatId: number, limit = 10): Promise<ChatMessage[]> {
+export async function fetchTelegramConversation(chatId: number, limit = 10): Promise<TelegramConversationState> {
   const supabase = getSupabaseServiceRoleClient();
   const { data, error } = await supabase
     .from(ASK_ALISHER_ANALYTICS_TABLE)
-    .select("metadata")
+    .select("language, metadata")
     .eq("event_name", TELEGRAM_TURN_EVENT)
     .eq("session_id", getTelegramSessionId(chatId))
     .order("id", { ascending: false })
@@ -204,8 +254,7 @@ export async function fetchTelegramHistory(chatId: number, limit = 10): Promise<
   }
 
   const rows = ((data as StoredTelegramTurn[] | null) ?? []).reverse();
-
-  return rows
+  const messages = rows
     .map((row) => {
       const role = row.metadata?.role === "assistant" ? "assistant" : "user";
       const content =
@@ -219,6 +268,18 @@ export async function fetchTelegramHistory(chatId: number, limit = 10): Promise<
       } satisfies ChatMessage;
     })
     .filter((row): row is ChatMessage => row !== null);
+  const lastExplicitLanguage = [...rows]
+    .reverse()
+    .find((row) => row.language === "en" || row.language === "uz")?.language;
+  const inferredLanguage =
+    lastExplicitLanguage === "en" || lastExplicitLanguage === "uz"
+      ? lastExplicitLanguage
+      : detectLanguage(messages.filter((message) => message.role === "user").at(-1)?.content || "");
+
+  return {
+    messages,
+    language: inferredLanguage,
+  };
 }
 
 export async function clearTelegramHistory(chatId: number) {
@@ -232,6 +293,78 @@ export async function clearTelegramHistory(chatId: number) {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export function isTelegramQuickAction(data: string) {
+  return [TELEGRAM_CALLBACK_MORE, TELEGRAM_CALLBACK_SHORTER, TELEGRAM_CALLBACK_EXAMPLE].includes(data);
+}
+
+export function isTelegramFeedbackAction(data: string) {
+  return [TELEGRAM_CALLBACK_FEEDBACK_UP, TELEGRAM_CALLBACK_FEEDBACK_DOWN].includes(data);
+}
+
+export function getTelegramQuickActionPrompt(action: string, language: Language): string | null {
+  if (language === "en") {
+    if (action === TELEGRAM_CALLBACK_MORE) {
+      return "Please explain the previous answer in more detail without changing the topic.";
+    }
+    if (action === TELEGRAM_CALLBACK_SHORTER) {
+      return "Please restate the previous answer in 2 or 3 shorter sentences.";
+    }
+    if (action === TELEGRAM_CALLBACK_EXAMPLE) {
+      return "Please give one concrete example for the previous answer.";
+    }
+    return null;
+  }
+
+  if (action === TELEGRAM_CALLBACK_MORE) {
+    return "Oldingi javobni mavzudan chiqmasdan batafsilroq tushuntirib bering.";
+  }
+  if (action === TELEGRAM_CALLBACK_SHORTER) {
+    return "Oldingi javobni 2-3 gapda qisqaroq qilib ayting.";
+  }
+  if (action === TELEGRAM_CALLBACK_EXAMPLE) {
+    return "Oldingi javob bo'yicha bitta aniq misol keltiring.";
+  }
+  return null;
+}
+
+function buildTelegramActionRows(language: Language): TelegramReplyMarkup["inline_keyboard"] {
+  if (language === "en") {
+    return [
+      [
+        { text: "More detail", callback_data: TELEGRAM_CALLBACK_MORE },
+        { text: "Shorter", callback_data: TELEGRAM_CALLBACK_SHORTER },
+      ],
+      [
+        { text: "One example", callback_data: TELEGRAM_CALLBACK_EXAMPLE },
+      ],
+      [
+        { text: "👍 Helpful", callback_data: TELEGRAM_CALLBACK_FEEDBACK_UP },
+        { text: "👎 Not quite", callback_data: TELEGRAM_CALLBACK_FEEDBACK_DOWN },
+      ],
+    ];
+  }
+
+  return [
+    [
+      { text: "Batafsilroq", callback_data: TELEGRAM_CALLBACK_MORE },
+      { text: "Qisqaroq", callback_data: TELEGRAM_CALLBACK_SHORTER },
+    ],
+    [
+      { text: "Yana misol", callback_data: TELEGRAM_CALLBACK_EXAMPLE },
+    ],
+    [
+      { text: "👍 Foydali", callback_data: TELEGRAM_CALLBACK_FEEDBACK_UP },
+      { text: "👎 Uncha emas", callback_data: TELEGRAM_CALLBACK_FEEDBACK_DOWN },
+    ],
+  ];
+}
+
+export function getTelegramFeedbackValue(data: string): "up" | "down" | null {
+  if (data === TELEGRAM_CALLBACK_FEEDBACK_UP) return "up";
+  if (data === TELEGRAM_CALLBACK_FEEDBACK_DOWN) return "down";
+  return null;
 }
 
 export async function requestAskAlisherReply(params: {
@@ -445,15 +578,18 @@ function buildTelegramSourceKeyboard(
   sources: TelegramSource[],
   language: Language
 ): TelegramReplyMarkup | undefined {
-  if (!sources.length) return undefined;
+  const sourceRows = sources.map((source, index) => [
+    {
+      text: getTelegramSourceLabel(source, index, language),
+      url: source.url,
+    },
+  ]);
+  const inlineKeyboard = [...buildTelegramActionRows(language), ...sourceRows];
+
+  if (!inlineKeyboard.length) return undefined;
 
   return {
-    inline_keyboard: sources.map((source, index) => [
-      {
-        text: getTelegramSourceLabel(source, index, language),
-        url: source.url,
-      },
-    ]),
+    inline_keyboard: inlineKeyboard,
   };
 }
 
@@ -471,6 +607,11 @@ export function formatTelegramAnswer(
   if (!sources.length || shouldSuppressTelegramSources(answer)) {
     return {
       text: formattedAnswer,
+      replyMarkup: shouldSuppressTelegramSources(answer)
+        ? undefined
+        : {
+            inline_keyboard: buildTelegramActionRows(language),
+          },
       parseMode: "HTML",
     };
   }
