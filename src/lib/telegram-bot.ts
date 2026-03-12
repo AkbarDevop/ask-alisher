@@ -439,6 +439,13 @@ function normalizeTelegramAnswer(answer: string) {
   return answer
     .replace(/\r\n/gu, "\n")
     .replace(/[ \t]+\n/gu, "\n")
+    .replace(
+      /\b(Birinchidan|Ikkinchidan|Uchinchidan|To'rtinchidan|To‘rtinchidan|Beshinchidan|Oltinchidan|Yettinchidan|Sakkizinchidan|To'qqizinchidan|To‘qqizinchidan|First|Second|Third|Fourth|Finally)\.\s*\n+/gu,
+      "$1, "
+    )
+    .replace(/\b(Va|va|And|and|But|but|Lekin|Ammo)\s*\n+/gu, "$1 ")
+    .replace(/([,:;])\s*\n+(?=\p{L}|\p{N}|["'“‘(])/gu, "$1 ")
+    .replace(/([^\n])\n(?!\n|[•\-])/gu, "$1 ")
     .replace(/\n{3,}/gu, "\n\n")
     .trim();
 }
@@ -499,6 +506,40 @@ function splitTelegramAnswerIntoParagraphs(answer: string): string[] {
   return paragraphs;
 }
 
+function cleanTelegramParagraphs(paragraphs: string[]): string[] {
+  const cleaned: string[] = [];
+  const enumeratorPattern =
+    /^(Birinchidan|Ikkinchidan|Uchinchidan|To'rtinchidan|To‘rtinchidan|Beshinchidan|Oltinchidan|Yettinchidan|Sakkizinchidan|To'qqizinchidan|To‘qqizinchidan|First|Second|Third|Fourth|Finally)[,.:]?$/u;
+
+  for (let index = 0; index < paragraphs.length; index += 1) {
+    const current = paragraphs[index]?.replace(/\s+/gu, " ").trim();
+    if (!current) continue;
+
+    const next = paragraphs[index + 1]?.replace(/\s+/gu, " ").trim() || "";
+    const enumeratorMatch = current.match(enumeratorPattern);
+
+    if (enumeratorMatch && next) {
+      cleaned.push(`${enumeratorMatch[1]}, ${next}`);
+      index += 1;
+      continue;
+    }
+
+    if (/^(Va|va|And|and|But|but|Lekin|Ammo)$/u.test(current)) {
+      continue;
+    }
+
+    if (current.endsWith(",") && next && /^\p{L}/u.test(next)) {
+      cleaned.push(`${current} ${next}`);
+      index += 1;
+      continue;
+    }
+
+    cleaned.push(current);
+  }
+
+  return cleaned;
+}
+
 function formatTelegramParagraph(paragraph: string, options?: { emphasizeLead?: boolean }) {
   const trimmed = paragraph.trim();
   if (!trimmed) return "";
@@ -531,7 +572,7 @@ function formatTelegramParagraph(paragraph: string, options?: { emphasizeLead?: 
 }
 
 function formatTelegramAnswerText(answer: string): string {
-  const paragraphs = splitTelegramAnswerIntoParagraphs(answer);
+  const paragraphs = cleanTelegramParagraphs(splitTelegramAnswerIntoParagraphs(answer));
   if (!paragraphs.length) {
     return trimTelegramMessage(renderTelegramInlineFormatting(answer.trim()));
   }
