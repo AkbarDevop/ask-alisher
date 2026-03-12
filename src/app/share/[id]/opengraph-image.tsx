@@ -14,7 +14,7 @@ function getLabels(lang: string) {
     return {
       question: "Savol",
       answer: "Javob",
-      cta: "Shu javobdan davom eting",
+      cta: "Shu yerdan davom eting",
       shared: "Ulashilgan savol-javob",
       topics: "Yoshlar, ta'lim, tadbirkorlik, shaxmat",
     };
@@ -23,7 +23,7 @@ function getLabels(lang: string) {
   return {
     question: "Question",
     answer: "Answer",
-    cta: "Continue from this answer",
+    cta: "Pick up this thread",
     shared: "Shared Q&A",
     topics: "Youth, education, entrepreneurship, chess",
   };

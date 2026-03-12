@@ -89,16 +89,22 @@ export function buildLegacyShareImageUrl(payload: SharePayload) {
 }
 
 export function buildShareMetaTitle(payload: SharePayload) {
-  const prefix = payload.lang === "uz" ? "Savol" : "Question";
-  return `${prefix}: ${truncateShareText(payload.question, 62)} | Ask Alisher`;
+  const suffix = payload.lang === "uz" ? "Ask Alisher javobi" : "Ask Alisher's answer";
+  return `${truncateShareText(payload.question, 60)} — ${suffix}`;
 }
 
 export function buildShareMetaDescription(payload: SharePayload) {
   if (payload.lang === "uz") {
-    return "Ulashilgan javobni ko'ring va shu nuqtadan Ask Alisher bilan suhbatni davom ettiring.";
+    return `"${truncateShareText(
+      payload.question,
+      84
+    )}" savoliga berilgan javobni oching va suhbatni shu joydan davom ettiring.`;
   }
 
-  return "Open the shared answer and continue the conversation with Ask Alisher from that exact thread.";
+  return `Open Ask Alisher's answer to "${truncateShareText(
+    payload.question,
+    84
+  )}" and continue the thread from there.`;
 }
 
 export async function createShareRecord(payload: SharePayload) {
