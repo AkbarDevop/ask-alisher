@@ -326,8 +326,41 @@ export function MessageBubble({
 
     setSharing(true);
     try {
-      const shareUrl =
-        shareUrlRef.current || buildShareCardUrl(question, text, lang);
+      let shareUrl = shareUrlRef.current;
+
+      if (!shareUrl) {
+        try {
+          const response = await fetch("/api/share", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              question: question || "",
+              answer: text,
+              lang,
+            }),
+          });
+
+          if (response.ok) {
+            const payload = (await response.json()) as { url?: string };
+            if (payload.url) {
+              const origin =
+                typeof window !== "undefined" && window.location.origin
+                  ? window.location.origin
+                  : "https://askalishersadullaev.netlify.app";
+              shareUrl = new URL(payload.url, origin).toString();
+            }
+          }
+        } catch {
+          // Fall through to the stateless share URL below.
+        }
+      }
+
+      if (!shareUrl) {
+        shareUrl = buildShareCardUrl(question, text, lang);
+      }
+
       shareUrlRef.current = shareUrl;
 
       const shareText = buildShareText({

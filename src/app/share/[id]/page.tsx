@@ -2,25 +2,27 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ShareExperience } from "@/components/ShareExperience";
 import { UI_TEXT } from "@/lib/prompts";
-import {
-  buildLegacyShareImageUrl,
-  buildLegacySharePageUrl,
-  getSharePayloadFromSearchParams,
-  truncateShareText,
-} from "@/lib/share";
+import { fetchShareRecord, truncateShareText } from "@/lib/share";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams: Promise<{
-    q?: string | string[];
-    a?: string | string[];
-    lang?: string | string[];
+  params: Promise<{
+    id: string;
   }>;
 };
 
-export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const payload = getSharePayloadFromSearchParams(await searchParams);
+function buildShareImageUrl(id: string) {
+  return `/share/${id}/opengraph-image`;
+}
+
+function buildSharePageUrl(id: string) {
+  return `/share/${id}`;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const payload = await fetchShareRecord(id);
 
   if (!payload) {
     return {
@@ -34,7 +36,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
   const title = `${truncateShareText(payload.question, 68)} · Ask Alisher`;
   const description = truncateShareText(payload.answer, 160);
-  const imageUrl = buildLegacyShareImageUrl(payload);
+  const imageUrl = buildShareImageUrl(payload.id);
 
   return {
     title,
@@ -47,7 +49,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       title,
       description,
       type: "article",
-      url: buildLegacySharePageUrl(payload),
+      url: buildSharePageUrl(payload.id),
       siteName: "Ask Alisher",
       images: [
         {
@@ -67,8 +69,9 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   };
 }
 
-export default async function SharePage({ searchParams }: PageProps) {
-  const payload = getSharePayloadFromSearchParams(await searchParams);
+export default async function ShareByIdPage({ params }: PageProps) {
+  const { id } = await params;
+  const payload = await fetchShareRecord(id);
 
   if (!payload) {
     const t = UI_TEXT.en;
@@ -88,7 +91,7 @@ export default async function SharePage({ searchParams }: PageProps) {
           </p>
           <h1 className="mb-3 text-2xl font-semibold">Shared answer unavailable</h1>
           <p className="mb-6 text-sm leading-6" style={{ color: "var(--muted)" }}>
-            This shared link is missing the question or answer preview.
+            This short share link no longer resolves to a saved answer.
           </p>
           <Link
             href="/"
@@ -107,8 +110,8 @@ export default async function SharePage({ searchParams }: PageProps) {
       question={payload.question}
       answer={payload.answer}
       lang={payload.lang}
-      sharePageUrl={buildLegacySharePageUrl(payload)}
-      shareImageUrl={buildLegacyShareImageUrl(payload)}
+      sharePageUrl={buildSharePageUrl(payload.id)}
+      shareImageUrl={buildShareImageUrl(payload.id)}
     />
   );
 }

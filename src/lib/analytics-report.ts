@@ -197,6 +197,7 @@ export async function fetchAnalyticsRows(days: number): Promise<AnalyticsRow[]> 
       .from(ASK_ALISHER_ANALYTICS_TABLE)
       .select("created_at, event_name, session_id, language, hostname, page_path, metadata")
       .gte("created_at", since)
+      .neq("event_name", "askalisher_share_payload")
       .order("created_at", { ascending: false })
       .range(from, from + pageSize - 1);
 
