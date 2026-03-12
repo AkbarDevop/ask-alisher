@@ -122,8 +122,6 @@ export default async function SharePage({ searchParams }: PageProps) {
       question={payload.question}
       answer={payload.answer}
       lang={payload.lang}
-      sharePageUrl={buildLegacySharePageUrl(payload)}
-      shareImageUrl={buildLegacyShareImageUrl(payload)}
     />
   );
 }

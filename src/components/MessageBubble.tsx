@@ -149,25 +149,18 @@ function truncateForShare(text: string, maxLength: number): string {
 function buildShareText(params: {
   lang: Language;
   question?: string;
-  answer: string;
 }) {
-  const { lang, question, answer } = params;
+  const { lang, question } = params;
   const t = UI_TEXT[lang];
   const trimmedQuestion = question?.trim();
-  const trimmedAnswer = truncateForShare(answer, 420);
 
-  const lines = ["Ask Alisher", ""];
+  const lines = ["Ask Alisher"];
 
   if (trimmedQuestion) {
+    lines.push("");
     lines.push(`${t.shareQuestionLabel}:`);
     lines.push(trimmedQuestion);
-    lines.push("");
   }
-
-  lines.push(`${t.shareAnswerLabel}:`);
-  lines.push(trimmedAnswer);
-  lines.push("");
-  lines.push(`${t.shareCta}:`);
 
   return lines.join("\n");
 }
@@ -366,7 +359,6 @@ export function MessageBubble({
       const shareText = buildShareText({
         lang,
         question,
-        answer: text,
       });
       const shareData = {
         title: "Ask Alisher",

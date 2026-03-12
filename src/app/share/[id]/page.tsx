@@ -111,8 +111,6 @@ export default async function ShareByIdPage({ params }: PageProps) {
       question={payload.question}
       answer={payload.answer}
       lang={payload.lang}
-      sharePageUrl={buildSharePageUrl(payload.id)}
-      shareImageUrl={buildShareImageUrl(payload.id)}
     />
   );
 }

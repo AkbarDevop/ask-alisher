@@ -1,22 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ShareCardActions } from "@/components/ShareCardActions";
 import { UI_TEXT, type Language } from "@/lib/prompts";
 
 type ShareExperienceProps = {
   question: string;
   answer: string;
   lang: Language;
-  sharePageUrl: string;
-  shareImageUrl: string;
 };
 
 export function ShareExperience({
   question,
   answer,
   lang,
-  sharePageUrl,
-  shareImageUrl,
 }: ShareExperienceProps) {
   const t = UI_TEXT[lang];
   const answerParagraphs = answer.split(/\n{2,}/u).filter(Boolean);
@@ -146,9 +141,6 @@ export function ShareExperience({
               >
                 {t.openSharedChat}
               </Link>
-              <div>
-                <ShareCardActions lang={lang} shareUrl={sharePageUrl} imageUrl={shareImageUrl} />
-              </div>
             </div>
           </div>
         </div>
