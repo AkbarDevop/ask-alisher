@@ -149,14 +149,15 @@ function truncateForShare(text: string, maxLength: number): string {
 function buildShareText(params: {
   lang: Language;
   question?: string;
+  url: string;
 }) {
-  const { lang, question } = params;
+  const { lang, question, url } = params;
   const trimmedQuestion = question?.trim();
 
   if (!trimmedQuestion) {
     return lang === "uz"
-      ? "Alisher Sadullaevdan bir savol so'rab ko'rdim."
-      : "I asked Alisher Sadullaev something interesting.";
+      ? `Alisher Sadullaevdan bir savol so'rab ko'rdim.\n\nJavob bu yerda:\n${url}`
+      : `I asked Alisher Sadullaev something interesting.\n\nSee the answer here:\n${url}`;
   }
 
   const lines =
@@ -167,6 +168,7 @@ function buildShareText(params: {
           trimmedQuestion,
           "",
           "Javob bu yerda:",
+          url,
         ]
       : [
           "I asked Alisher Sadullaev this:",
@@ -174,6 +176,7 @@ function buildShareText(params: {
           trimmedQuestion,
           "",
           "See the answer here:",
+          url,
         ];
 
   return lines.join("\n");
@@ -373,11 +376,11 @@ export function MessageBubble({
       const shareText = buildShareText({
         lang,
         question,
+        url: shareUrl,
       });
       const shareData = {
         title: question?.trim() || "Ask Alisher",
         text: shareText,
-        url: shareUrl,
       };
       if (navigator.share) {
         try {
@@ -392,9 +395,7 @@ export function MessageBubble({
           // User cancelled share
         }
       } else {
-        await navigator.clipboard.writeText(
-          `${shareText}\n${shareUrl}`
-        );
+        await navigator.clipboard.writeText(shareText);
         onShare?.({
           method: "clipboard",
           hasQuestion: Boolean(question?.trim()),
