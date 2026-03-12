@@ -151,16 +151,30 @@ function buildShareText(params: {
   question?: string;
 }) {
   const { lang, question } = params;
-  const t = UI_TEXT[lang];
   const trimmedQuestion = question?.trim();
 
-  const lines = ["Ask Alisher"];
-
-  if (trimmedQuestion) {
-    lines.push("");
-    lines.push(`${t.shareQuestionLabel}:`);
-    lines.push(trimmedQuestion);
+  if (!trimmedQuestion) {
+    return lang === "uz"
+      ? "Alisher Sadullaevdan bir savol so'rab ko'rdim."
+      : "I asked Alisher Sadullaev something interesting.";
   }
+
+  const lines =
+    lang === "uz"
+      ? [
+          "Alisher Sadullaevga shu savolni berdim:",
+          "",
+          trimmedQuestion,
+          "",
+          "Javob bu yerda:",
+        ]
+      : [
+          "I asked Alisher Sadullaev this:",
+          "",
+          trimmedQuestion,
+          "",
+          "See the answer here:",
+        ];
 
   return lines.join("\n");
 }
@@ -361,7 +375,7 @@ export function MessageBubble({
         question,
       });
       const shareData = {
-        title: "Ask Alisher",
+        title: question?.trim() || "Ask Alisher",
         text: shareText,
         url: shareUrl,
       };
