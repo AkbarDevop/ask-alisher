@@ -82,7 +82,9 @@ function shouldSuppressSources(answer: string): boolean {
     /i don't have any information on that/u,
     /i do not have any information on that/u,
     /bu haqda ochiq gapirmaganman/u,
+    /haqida ochiq gapirmaganman/u,
     /bu mavzu bo'yicha ochiq fikr bildirganim yo'q/u,
+    /ochiq fikr bildirganim yo'q/u,
     /bu haqda menda ma'lumot yo'q/u,
     /buni omma bilan ulashmaganman/u,
   ].some((pattern) => pattern.test(normalized));

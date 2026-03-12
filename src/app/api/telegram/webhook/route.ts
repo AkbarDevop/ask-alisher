@@ -193,10 +193,13 @@ export async function POST(req: Request) {
       console.error("Telegram assistant turn store failed:", error);
     });
 
+    const formattedReply = formatTelegramAnswer(answer, sources, language);
+
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: formatTelegramAnswer(answer, sources, language),
+      text: formattedReply.text,
+      replyMarkup: formattedReply.replyMarkup,
     });
   } catch (error) {
     console.error("Telegram webhook handling failed:", error);

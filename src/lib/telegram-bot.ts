@@ -12,6 +12,10 @@ type TelegramSource = {
   url: string;
 };
 
+type TelegramReplyMarkup = {
+  inline_keyboard: Array<Array<{ text: string; url: string }>>;
+};
+
 type StoredTelegramTurn = {
   metadata: Record<string, unknown> | null;
 };
@@ -42,6 +46,25 @@ function trimTelegramMessage(text: string, maxLength = TELEGRAM_MAX_MESSAGE_LENG
   const normalized = text.trim();
   if (normalized.length <= maxLength) return normalized;
   return `${normalized.slice(0, Math.max(maxLength - 1, 0)).trimEnd()}…`;
+}
+
+function shouldSuppressTelegramSources(answer: string): boolean {
+  const normalized = answer.trim().toLowerCase();
+
+  return [
+    /i haven't spoken publicly about/u,
+    /i have not spoken publicly about/u,
+    /that's not something i've shared/u,
+    /that is not something i've shared/u,
+    /i don't have any information on that/u,
+    /i do not have any information on that/u,
+    /bu haqda ochiq gapirmaganman/u,
+    /haqida ochiq gapirmaganman/u,
+    /bu mavzu bo'yicha ochiq fikr bildirganim yo'q/u,
+    /ochiq fikr bildirganim yo'q/u,
+    /bu haqda menda ma'lumot yo'q/u,
+    /buni omma bilan ulashmaganman/u,
+  ].some((pattern) => pattern.test(normalized));
 }
 
 function detectLanguage(text: string): Language {
@@ -118,12 +141,14 @@ export async function sendTelegramMessage(params: {
   chatId: number;
   text: string;
   replyToMessageId?: number;
+  replyMarkup?: TelegramReplyMarkup;
 }) {
   await sendTelegramApi("sendMessage", {
     chat_id: params.chatId,
     text: trimTelegramMessage(params.text),
     reply_to_message_id: params.replyToMessageId,
     disable_web_page_preview: true,
+    reply_markup: params.replyMarkup,
   });
 }
 
@@ -287,18 +312,69 @@ export async function requestAskAlisherReply(params: {
   };
 }
 
-export function formatTelegramAnswer(answer: string, sources: TelegramSource[], language: Language) {
-  if (!sources.length) {
-    return trimTelegramMessage(answer);
+function trimTelegramSourceLabel(label: string, maxLength = 32) {
+  if (label.length <= maxLength) return label;
+  return `${label.slice(0, Math.max(maxLength - 3, 0)).trimEnd()}...`;
+}
+
+function getTelegramSourceLabel(source: TelegramSource, index: number, language: Language) {
+  const title = source.title?.trim();
+  const postMatch = title?.match(/Post #\d+/u);
+
+  if (postMatch?.[0]) {
+    return postMatch[0];
   }
 
-  const sourceLabel = language === "uz" ? "Manbalar:" : "Sources:";
-  const sourceBlock = `${sourceLabel}\n${sources.map((source) => `• ${source.url}`).join("\n")}`;
-  const combined = `${answer.trim()}\n\n${sourceBlock}`;
+  if (title) {
+    return trimTelegramSourceLabel(title);
+  }
 
-  return trimTelegramMessage(
-    combined.length <= TELEGRAM_MAX_MESSAGE_LENGTH ? combined : answer
-  );
+  try {
+    const hostname = new URL(source.url).hostname.replace(/^www\./u, "");
+    return trimTelegramSourceLabel(hostname);
+  } catch {
+    return language === "uz" ? `Manba ${index + 1}` : `Source ${index + 1}`;
+  }
+}
+
+function buildTelegramSourceKeyboard(
+  sources: TelegramSource[],
+  language: Language
+): TelegramReplyMarkup | undefined {
+  if (!sources.length) return undefined;
+
+  return {
+    inline_keyboard: sources.map((source, index) => [
+      {
+        text: getTelegramSourceLabel(source, index, language),
+        url: source.url,
+      },
+    ]),
+  };
+}
+
+export function formatTelegramAnswer(
+  answer: string,
+  sources: TelegramSource[],
+  language: Language
+): {
+  text: string;
+  replyMarkup?: TelegramReplyMarkup;
+} {
+  if (!sources.length || shouldSuppressTelegramSources(answer)) {
+    return { text: trimTelegramMessage(answer) };
+  }
+
+  const sourceHint =
+    language === "uz"
+      ? "Manbalar pastdagi tugmalarda."
+      : "Sources are linked in the buttons below.";
+  const combined = `${answer.trim()}\n\n${sourceHint}`;
+
+  return {
+    text: trimTelegramMessage(combined.length <= TELEGRAM_MAX_MESSAGE_LENGTH ? combined : answer),
+    replyMarkup: buildTelegramSourceKeyboard(sources, language),
+  };
 }
 
 export function buildTelegramWelcomeText(siteUrl: string) {
