@@ -6,6 +6,8 @@ const TELEGRAM_API_BASE = "https://api.telegram.org";
 const DEFAULT_COMMANDS = [
   { command: "start", description: "Bot bilan boshlash" },
   { command: "help", description: "Misollar va yo'riqnoma" },
+  { command: "examples", description: "Savol g'oyalarini ko'rish" },
+  { command: "recent", description: "So'nggi mavzularni ko'rish" },
   { command: "new", description: "Suhbatni yangilash" },
 ];
 

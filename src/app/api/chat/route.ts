@@ -180,6 +180,7 @@ type QueryIntent = {
   prefersLongForm: boolean;
   prefersBiography: boolean;
   prefersConcreteUpdates: boolean;
+  prefersBalancedSources: boolean;
 };
 
 function startOfUtcDay(year: number, month: number, day: number): Date {
@@ -385,6 +386,13 @@ function buildQueryIntent(
     prefersTelegram ||
     /\b(which post|what post|what did you say|what did you write|what were you focused on)\b/iu
       .test(normalized);
+  const prefersBalancedSources =
+    !prefersTelegram &&
+    !options.dateScope &&
+    !prefersBiography &&
+    (/\b(imkoniyat|opportunity|opportunities|support|qo'llab|dastur|program|initiative|grant|loan|education|ta'lim|youth|yoshlar|startup|tadbirkorlik|career|bandlik|employment)\b/iu
+      .test(normalized) ||
+      !prefersConcreteUpdates);
 
   return {
     prefersTelegram,
@@ -392,6 +400,7 @@ function buildQueryIntent(
     prefersLongForm,
     prefersBiography,
     prefersConcreteUpdates,
+    prefersBalancedSources,
   };
 }
 
@@ -443,6 +452,7 @@ function scoreChunkForSelection(
   if (sourceFamily === "telegram") {
     if (intent.prefersTelegram) score += 18;
     if (intent.prefersLongForm) score -= 8;
+    if (intent.prefersBalancedSources) score -= 6;
     if (intent.prefersRecent && publishedAtMs > 0) {
       const ageDays = Math.max(0, (now - publishedAtMs) / (24 * 60 * 60 * 1000));
       score += Math.max(0, 18 - ageDays * 0.2);
@@ -460,6 +470,7 @@ function scoreChunkForSelection(
     if (intent.prefersLongForm) score += 18;
     if (intent.prefersBiography) score += 6;
     if (!intent.prefersTelegram) score += 4;
+    if (intent.prefersBalancedSources) score += 10;
     score += Math.min(6, chunk.content.length / 600);
   }
 
@@ -941,8 +952,8 @@ export async function POST(req: Request) {
 
   const selectedChunks = chunks?.length
     ? selectContextChunks(chunks, {
-        telegramReserve: userDateScope ? 6 : supplementalTelegramChunks.length > 0 ? 4 : 2,
-        longFormReserve: queryIntent.prefersLongForm ? 3 : 0,
+        telegramReserve: userDateScope ? 6 : supplementalTelegramChunks.length > 0 ? 4 : queryIntent.prefersBalancedSources ? 1 : 2,
+        longFormReserve: queryIntent.prefersLongForm ? 3 : queryIntent.prefersBalancedSources ? 2 : 0,
         profileReserve: queryIntent.prefersBiography ? 2 : 0,
       })
     : [];
@@ -961,6 +972,9 @@ export async function POST(req: Request) {
     `Today is ${todayLabel}.`,
     telegramFocusedQuestion
       ? "The user is specifically asking about Telegram content. Prefer telegram_post context and avoid mixing in YouTube or interviews when Telegram context is sufficient."
+      : "",
+    queryIntent.prefersBalancedSources
+      ? "The user is asking a broad question. Prefer a balanced mix of public sources instead of defaulting to Telegram only."
       : "",
     userDateScope
       ? `The user is asking about Telegram content from ${userDateScope.label}. Do not answer with posts from outside that window.`

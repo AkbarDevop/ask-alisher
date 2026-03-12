@@ -1,8 +1,10 @@
 import { consumeAskAlisherRateLimit } from "@/lib/rate-limit";
 import {
+  buildTelegramExamplesText,
   answerTelegramCallbackQuery,
   buildTelegramHelpText,
   buildTelegramNonTextReply,
+  getTelegramRecentCommandPrompt,
   buildTelegramRateLimitReply,
   buildTelegramResetText,
   buildTelegramWelcomeText,
@@ -329,6 +331,33 @@ export async function POST(req: Request) {
       text: buildTelegramHelpText(siteUrl),
     }).catch((error) => {
       console.error("Telegram /help reply failed:", error);
+    });
+
+    return Response.json({ ok: true });
+  }
+
+  if (matchesCommand(text, "examples")) {
+    await sendTelegramMessage({
+      chatId,
+      replyToMessageId: message.message_id,
+      text: buildTelegramExamplesText(),
+    }).catch((error) => {
+      console.error("Telegram /examples reply failed:", error);
+    });
+
+    return Response.json({ ok: true });
+  }
+
+  if (matchesCommand(text, "recent")) {
+    await handleTelegramConversationTurn({
+      chatId,
+      text: getTelegramRecentCommandPrompt("uz"),
+      replyToMessageId: message.message_id,
+      actor: message.from,
+      requestOrigin,
+      source: "quick_action",
+      quickAction: "command_recent",
+      fallbackLanguage: "uz",
     });
 
     return Response.json({ ok: true });

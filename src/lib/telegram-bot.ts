@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { ASK_ALISHER_ANALYTICS_TABLE } from "@/lib/analytics";
-import type { Language } from "@/lib/prompts";
+import { SUGGESTED_QUESTIONS, type Language } from "@/lib/prompts";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -659,10 +659,28 @@ export function buildTelegramHelpText(siteUrl: string) {
     "• Hududlardagi yoshlar uchun qaysi imkoniyatlar eng muhim?",
     "• Davlat xizmati va yoshlar bilan ishlash o'rtasida balansni qanday tutasiz?",
     "",
+    "/examples — yangi savol g'oyalari",
+    "/recent — so'nggi mavzular bo'yicha qisqa jamlanma",
     "Javoblar ommaviy postlar, intervyular va chiqishlarga tayangan holda beriladi.",
     "/new — suhbatni tozalaydi va yangidan boshlaydi",
     `Web versiya: ${siteUrl}`,
   ].join("\n");
+}
+
+export function buildTelegramExamplesText() {
+  const sampleQuestions = SUGGESTED_QUESTIONS.uz.slice(0, 8);
+
+  return [
+    "Mana bir nechta yaxshi savol g'oyalari:",
+    "",
+    ...sampleQuestions.map((question) => `• ${question}`),
+  ].join("\n");
+}
+
+export function getTelegramRecentCommandPrompt(language: Language) {
+  return language === "en"
+    ? "Based on the freshest public Telegram posts, interviews, and talks, what 3 or 4 themes are being emphasized most recently? Answer briefly and use up-to-date public context."
+    : "Eng yangi ommaviy Telegram postlari, intervyular va chiqishlarga qarab, hozir eng ko'p ta'kidlanayotgan 3-4 mavzuni qisqacha ayting. Faqat yangi va ommaviy kontekstga tayaning.";
 }
 
 export function buildTelegramResetText(language: Language) {
