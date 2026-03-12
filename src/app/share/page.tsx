@@ -3,11 +3,12 @@ import Link from "next/link";
 import { ShareExperience } from "@/components/ShareExperience";
 import { UI_TEXT } from "@/lib/prompts";
 import {
+  buildShareMetaDescription,
+  buildShareMetaTitle,
   buildLegacyShareImageUrl,
   buildLegacySharePageUrl,
   getSharePayloadFromSearchParams,
   normalizeLang,
-  truncateShareText,
 } from "@/lib/share";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +42,8 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     };
   }
 
-  const title = `${truncateShareText(payload.question, 68)} · Ask Alisher`;
-  const description = truncateShareText(payload.answer, 160);
+  const title = buildShareMetaTitle(payload);
+  const description = buildShareMetaDescription(payload);
   const imageUrl = buildLegacyShareImageUrl(payload);
 
   return {

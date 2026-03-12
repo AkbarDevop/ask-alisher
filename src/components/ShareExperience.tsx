@@ -6,16 +6,20 @@ type ShareExperienceProps = {
   question: string;
   answer: string;
   lang: Language;
+  shareId?: string;
 };
 
 export function ShareExperience({
   question,
   answer,
   lang,
+  shareId,
 }: ShareExperienceProps) {
   const t = UI_TEXT[lang];
   const answerParagraphs = answer.split(/\n{2,}/u).filter(Boolean);
-  const askUrl = `/?q=${encodeURIComponent(question)}&lang=${lang}&fresh=1&utm_source=share_card&utm_medium=organic&utm_campaign=ask_alisher_answer_share`;
+  const askUrl = shareId
+    ? `/?share=${encodeURIComponent(shareId)}&lang=${lang}&fresh=1&utm_source=share_card&utm_medium=organic&utm_campaign=ask_alisher_answer_share`
+    : `/?q=${encodeURIComponent(question)}&lang=${lang}&fresh=1&utm_source=share_card&utm_medium=organic&utm_campaign=ask_alisher_answer_share`;
 
   return (
     <main
@@ -74,7 +78,7 @@ export function ShareExperience({
                 {question}
               </h1>
               <p className="mx-auto max-w-xl text-sm leading-6 sm:text-[15px]" style={{ color: "var(--muted)" }}>
-                {t.sharedAnswerPreview}
+                {t.shareHeroDescription}
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { fetchShareRecord, truncateShareText } from "@/lib/share";
 
 export const runtime = "edge";
-export const alt = "Ask Alisher shared answer card";
+export const alt = "Ask Alisher shared Q&A card";
 export const contentType = "image/png";
 export const size = {
   width: 1200,
@@ -14,8 +14,8 @@ function getLabels(lang: string) {
     return {
       question: "Savol",
       answer: "Javob",
-      cta: "O'zingiz ham savol bering",
-      shared: "Ulashilgan javob",
+      cta: "Shu javobdan davom eting",
+      shared: "Ulashilgan savol-javob",
       topics: "Yoshlar, ta'lim, tadbirkorlik, shaxmat",
     };
   }
@@ -23,8 +23,8 @@ function getLabels(lang: string) {
   return {
     question: "Question",
     answer: "Answer",
-    cta: "Ask your own question",
-    shared: "Shared answer",
+    cta: "Continue from this answer",
+    shared: "Shared Q&A",
     topics: "Youth, education, entrepreneurship, chess",
   };
 }

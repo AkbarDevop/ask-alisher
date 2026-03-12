@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ShareExperience } from "@/components/ShareExperience";
 import { UI_TEXT } from "@/lib/prompts";
-import { fetchShareRecord, truncateShareText } from "@/lib/share";
+import {
+  buildShareMetaDescription,
+  buildShareMetaTitle,
+  fetchShareRecord,
+} from "@/lib/share";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +39,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const title = `${truncateShareText(payload.question, 68)} · Ask Alisher`;
-  const description = truncateShareText(payload.answer, 160);
+  const title = buildShareMetaTitle(payload);
+  const description = buildShareMetaDescription(payload);
   const imageUrl = buildShareImageUrl(payload.id);
 
   return {
@@ -111,6 +115,7 @@ export default async function ShareByIdPage({ params }: PageProps) {
       question={payload.question}
       answer={payload.answer}
       lang={payload.lang}
+      shareId={payload.id}
     />
   );
 }

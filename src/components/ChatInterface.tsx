@@ -256,6 +256,52 @@ export function ChatInterface() {
     }
   }, [clearError, error, lastAssistantText, lastMessage?.role]);
 
+  const hydrateSharedConversation = useCallback(
+    async (shareId: string, fallbackQuestion: string | null) => {
+      try {
+        const response = await fetch(`/api/share/${encodeURIComponent(shareId)}`, {
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Share lookup failed with status ${response.status}`);
+        }
+
+        const payload = (await response.json()) as {
+          question?: string;
+          answer?: string;
+          lang?: Language;
+        };
+
+        const sharedQuestion = typeof payload.question === "string" ? payload.question.trim() : "";
+        const sharedAnswer = typeof payload.answer === "string" ? payload.answer.trim() : "";
+        const sharedLang = payload.lang === "uz" ? "uz" : "en";
+
+        if (!sharedQuestion || !sharedAnswer) {
+          throw new Error("Share payload is incomplete");
+        }
+
+        setLang(sharedLang);
+        setInput("");
+        setMessages([
+          createMessage("user", sharedQuestion),
+          createMessage("assistant", sharedAnswer),
+        ]);
+        requestAnimationFrame(() => textareaRef.current?.focus());
+        return true;
+      } catch {
+        if (fallbackQuestion && fallbackQuestion.trim()) {
+          setInput(fallbackQuestion.trim());
+          requestAnimationFrame(() => textareaRef.current?.focus());
+        }
+        return false;
+      }
+    },
+    []
+  );
+
   // Restore chat, language, and theme from localStorage on mount
   useEffect(() => {
     try {
@@ -282,6 +328,7 @@ export function ChatInterface() {
 
       const params = new URLSearchParams(window.location.search);
       const sharedQuestion = params.get("q");
+      const sharedId = params.get("share");
       const sharedLang = params.get("lang");
       const forceFresh = params.get("fresh") === "1";
 
@@ -295,13 +342,17 @@ export function ChatInterface() {
         localStorage.removeItem("ask-alisher-chat");
       }
 
-      if (sharedQuestion && sharedQuestion.trim() && (forceFresh || restoredMessages.length === 0)) {
-        setInput(sharedQuestion.trim());
-        requestAnimationFrame(() => textareaRef.current?.focus());
+      if (forceFresh || restoredMessages.length === 0) {
+        if (sharedId && sharedId.trim()) {
+          void hydrateSharedConversation(sharedId, sharedQuestion);
+        } else if (sharedQuestion && sharedQuestion.trim()) {
+          setInput(sharedQuestion.trim());
+          requestAnimationFrame(() => textareaRef.current?.focus());
+        }
       }
     } catch {}
     restoredRef.current = true;
-  }, []);
+  }, [hydrateSharedConversation]);
 
   const streamAssistantResponse = useCallback(
     async (conversation: UIMessage[]) => {

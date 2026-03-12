@@ -208,15 +208,17 @@ export const UI_TEXT = {
     shareQuestionLabel: "Question",
     shareAnswerLabel: "Answer",
     shareCta: "Ask your own question",
-    openSharedChat: "Open this in chat",
+    openSharedChat: "Continue from this answer",
     backToHome: "Back to Ask Alisher",
     downloadImage: "Download PNG",
     copyLink: "Copy link",
     linkCopied: "Link copied",
-    sharedAnswerPreview: "Shared answer",
-    sharePageEyebrow: "Shared Q&A",
+    sharedAnswerPreview: "Shared Q&A",
+    shareHeroDescription:
+      "A strong question started this thread. Pick it up from the answer and take it further.",
+    sharePageEyebrow: "Your turn",
     sharePageDescription:
-      "Open the same question in chat or keep this link moving.",
+      "Open the chat from this exact answer and continue naturally with your next question.",
     shareNotFoundMetaTitle: "Shared answer not found",
     shareUnavailableTitle: "Shared answer unavailable",
     shareUnavailableDescription:
@@ -252,15 +254,17 @@ export const UI_TEXT = {
     shareQuestionLabel: "Savol",
     shareAnswerLabel: "Javob",
     shareCta: "O'zingiz ham savol bering",
-    openSharedChat: "Suhbatda ochish",
+    openSharedChat: "Shu javobdan davom etish",
     backToHome: "Ask Alisherga qaytish",
     downloadImage: "PNG yuklab olish",
     copyLink: "Havolani nusxalash",
     linkCopied: "Havola nusxalandi",
-    sharedAnswerPreview: "Ulashilgan javob",
-    sharePageEyebrow: "Ulashilgan savol-javob",
+    sharedAnswerPreview: "Ulashilgan savol-javob",
+    shareHeroDescription:
+      "Qiziq savol suhbatni boshlab berdi. Endi shu javobdan davom etib, keyingi savolingizni bering.",
+    sharePageEyebrow: "Endi navbat sizda",
     sharePageDescription:
-      "Shu savolni chatda davom ettiring yoki havolani boshqalarga yuborishda ishlating.",
+      "Suhbat shu javobdan ochiladi va keyingi savolingiz bilan tabiiy davom etadi.",
     shareNotFoundMetaTitle: "Ulashilgan javob topilmadi",
     shareUnavailableTitle: "Ulashilgan javob mavjud emas",
     shareUnavailableDescription:

@@ -88,6 +88,19 @@ export function buildLegacyShareImageUrl(payload: SharePayload) {
   return `/api/share-image?${params.toString()}`;
 }
 
+export function buildShareMetaTitle(payload: SharePayload) {
+  const prefix = payload.lang === "uz" ? "Savol" : "Question";
+  return `${prefix}: ${truncateShareText(payload.question, 62)} | Ask Alisher`;
+}
+
+export function buildShareMetaDescription(payload: SharePayload) {
+  if (payload.lang === "uz") {
+    return "Ulashilgan javobni ko'ring va shu nuqtadan Ask Alisher bilan suhbatni davom ettiring.";
+  }
+
+  return "Open the shared answer and continue the conversation with Ask Alisher from that exact thread.";
+}
+
 export async function createShareRecord(payload: SharePayload) {
   const supabase = getSupabaseServiceRoleClient();
   const question = cleanQuestion(payload.question);
