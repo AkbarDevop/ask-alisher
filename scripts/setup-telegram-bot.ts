@@ -9,23 +9,17 @@ const DEFAULT_COMMANDS = [
   { command: "new", description: "Suhbatni yangilash" },
 ];
 
-const ENGLISH_COMMANDS = [
-  { command: "start", description: "Start the bot" },
-  { command: "help", description: "Help and examples" },
-  { command: "new", description: "Start a fresh chat" },
-];
+const ENGLISH_COMMANDS = [...DEFAULT_COMMANDS];
 
 const DEFAULT_DESCRIPTION =
   "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive. Savol yuboring va javobni uning ommaviy postlari, intervyulari hamda chiqishlari asosida oling.";
 
-const ENGLISH_DESCRIPTION =
-  "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive. Ask a question and get an answer grounded in his public posts, interviews, and talks.";
+const ENGLISH_DESCRIPTION = DEFAULT_DESCRIPTION;
 
 const DEFAULT_SHORT_DESCRIPTION =
   "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive.";
 
-const ENGLISH_SHORT_DESCRIPTION =
-  "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive.";
+const ENGLISH_SHORT_DESCRIPTION = DEFAULT_SHORT_DESCRIPTION;
 
 function getRequiredEnv(name: string) {
   const value = process.env[name];

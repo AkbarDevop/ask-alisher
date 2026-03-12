@@ -303,7 +303,7 @@ export function formatTelegramAnswer(answer: string, sources: TelegramSource[], 
 
 export function buildTelegramWelcomeText(siteUrl: string) {
   return [
-    "Assalomu alaykum. Men Ask Alisher botiman.",
+    "Assalomu alaykum. Men Ask Alisher Sadullaev botiman.",
     "",
     "Savolingizni yuboring. Men Alisher Sadullaevning ommaviy postlari, intervyulari va chiqishlari asosida javob beraman.",
     "Xohlasangiz, savolni inglizcha ham yozishingiz mumkin.",
