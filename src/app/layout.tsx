@@ -62,12 +62,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uz" suppressHydrationWarning>
+    <html lang="uz" translate="no" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#0a0a0a" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="google" content="notranslate" />
         <link rel="preload" href="/alisher.jpg" as="image" />
         <Script
           id="ga4-loader"
@@ -105,7 +106,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 })(window,document,'script','dataLayer','${GTM_ID}');`}
         </Script>
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body translate="no" className={`${inter.variable} notranslate font-sans antialiased`}>
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}

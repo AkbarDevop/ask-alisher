@@ -104,14 +104,14 @@ export function ShareExperience({
                   border: "1px solid var(--border)",
                 }}
               >
-                <div className="mb-3 flex items-center gap-2 text-[11px]" style={{ color: "var(--muted)" }}>
+                <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]" style={{ color: "var(--muted)" }}>
                   <span
                     className="rounded-full px-2 py-0.5"
                     style={{ background: "var(--suggestion-bg)", color: "var(--foreground)" }}
                   >
                     {t.shareQuestionLabel}
                   </span>
-                  <span>{question}</span>
+                  <span className="min-w-0 break-words">{question}</span>
                 </div>
                 <div className="space-y-4">
                   {answerParagraphs.map((paragraph, index) => (

@@ -23,11 +23,11 @@ export function ShareCardActions({ lang, shareUrl, imageUrl }: ShareCardActionsP
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       <a
         href={imageUrl}
         download="ask-alisher-share-card.png"
-        className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition-colors"
+        className="inline-flex w-full items-center justify-center rounded-2xl border px-3 py-2.5 text-sm font-medium transition-colors"
         style={{
           borderColor: "var(--border)",
           background: "var(--suggestion-bg)",
@@ -39,7 +39,7 @@ export function ShareCardActions({ lang, shareUrl, imageUrl }: ShareCardActionsP
       <button
         type="button"
         onClick={handleCopyLink}
-        className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition-colors"
+        className="inline-flex w-full items-center justify-center rounded-2xl border px-3 py-2.5 text-sm font-medium transition-colors"
         style={{
           borderColor: "var(--border)",
           background: "var(--suggestion-bg)",
