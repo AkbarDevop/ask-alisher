@@ -182,7 +182,7 @@ function normalizeStoredMessages(raw: unknown): UIMessage[] {
 }
 
 export function ChatInterface() {
-  const [lang, setLang] = useState<Language>("en");
+  const [lang, setLang] = useState<Language>("uz");
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [status, setStatus] = useState<ChatStatus>("ready");
   const [error, setError] = useState<Error>();
@@ -243,6 +243,10 @@ export function ChatInterface() {
   }, [lang]);
 
   useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  useEffect(() => {
     latestMessageCountRef.current = messages.length;
   }, [messages.length]);
 
@@ -265,9 +269,6 @@ export function ChatInterface() {
           setMessages(normalized);
         }
       }
-      const savedLang = localStorage.getItem("ask-alisher-lang");
-      if (savedLang === "en" || savedLang === "uz") setLang(savedLang);
-
       const savedTheme = localStorage.getItem("ask-alisher-theme");
       if (savedTheme === "light" || savedTheme === "dark") {
         setTheme(savedTheme);
@@ -512,10 +513,9 @@ export function ChatInterface() {
     }
   }, [messages, lang]);
 
-  // Persist language preference
+  // Track language changes for analytics while keeping Uzbek as the default entry language
   useEffect(() => {
     if (!restoredRef.current) return;
-    localStorage.setItem("ask-alisher-lang", lang);
     pushAnalyticsEvent("askalisher_language_change", { language: lang });
   }, [lang]);
 

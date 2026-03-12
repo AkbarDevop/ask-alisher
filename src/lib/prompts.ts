@@ -213,7 +213,16 @@ export const UI_TEXT = {
     downloadImage: "Download PNG",
     copyLink: "Copy link",
     linkCopied: "Link copied",
-    sharedAnswerPreview: "Shared answer preview",
+    sharedAnswerPreview: "Shared answer",
+    sharePageEyebrow: "Shared Q&A",
+    sharePageDescription:
+      "Open the same question in chat or keep this link moving.",
+    shareNotFoundMetaTitle: "Shared answer not found",
+    shareUnavailableTitle: "Shared answer unavailable",
+    shareUnavailableDescription:
+      "This shared link is missing the question or answer preview.",
+    shareExpiredDescription:
+      "This short share link no longer resolves to a saved answer.",
     tryAgain: "Try again",
     disclaimer: "AI simulation — not affiliated with Alisher Sadullaev",
     inputHint: "Enter to send, Shift+Enter for new line",
@@ -248,7 +257,16 @@ export const UI_TEXT = {
     downloadImage: "PNG yuklab olish",
     copyLink: "Havolani nusxalash",
     linkCopied: "Havola nusxalandi",
-    sharedAnswerPreview: "Ulashilgan javob preview",
+    sharedAnswerPreview: "Ulashilgan javob",
+    sharePageEyebrow: "Ulashilgan savol-javob",
+    sharePageDescription:
+      "Shu savolni chatda davom ettiring yoki havolani boshqalarga yuborishda ishlating.",
+    shareNotFoundMetaTitle: "Ulashilgan javob topilmadi",
+    shareUnavailableTitle: "Ulashilgan javob mavjud emas",
+    shareUnavailableDescription:
+      "Bu ulashilgan havolada savol yoki javob ko'rinishi yo'q.",
+    shareExpiredDescription:
+      "Bu qisqa ulashish havolasi endi saqlangan javobga olib bormaydi.",
     tryAgain: "Qayta urinish",
     disclaimer: "AI simulyatsiya — Alisher Sadullaev bilan bog'liq emas",
     inputHint: "Yuborish — Enter, yangi qator — Shift+Enter",

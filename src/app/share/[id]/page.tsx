@@ -25,8 +25,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const payload = await fetchShareRecord(id);
 
   if (!payload) {
+    const t = UI_TEXT.uz;
     return {
-      title: "Shared answer not found",
+      title: t.shareNotFoundMetaTitle,
       robots: {
         index: false,
         follow: false,
@@ -74,7 +75,7 @@ export default async function ShareByIdPage({ params }: PageProps) {
   const payload = await fetchShareRecord(id);
 
   if (!payload) {
-    const t = UI_TEXT.en;
+    const t = UI_TEXT.uz;
     return (
       <main className="chat-bg flex min-h-screen items-center justify-center px-4">
         <div
@@ -89,9 +90,9 @@ export default async function ShareByIdPage({ params }: PageProps) {
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--muted)" }}>
             Ask Alisher
           </p>
-          <h1 className="mb-3 text-2xl font-semibold">Shared answer unavailable</h1>
+          <h1 className="mb-3 text-2xl font-semibold">{t.shareUnavailableTitle}</h1>
           <p className="mb-6 text-sm leading-6" style={{ color: "var(--muted)" }}>
-            This short share link no longer resolves to a saved answer.
+            {t.shareExpiredDescription}
           </p>
           <Link
             href="/"

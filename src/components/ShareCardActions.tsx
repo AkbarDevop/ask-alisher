@@ -15,17 +15,19 @@ export function ShareCardActions({ lang, shareUrl, imageUrl }: ShareCardActionsP
   const t = UI_TEXT[lang];
 
   async function handleCopyLink() {
-    await navigator.clipboard.writeText(shareUrl);
+    const absoluteUrl =
+      typeof window !== "undefined" ? new URL(shareUrl, window.location.origin).toString() : shareUrl;
+    await navigator.clipboard.writeText(absoluteUrl);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-wrap gap-2">
       <a
         href={imageUrl}
         download="ask-alisher-share-card.png"
-        className="rounded-2xl border px-4 py-3 text-center text-sm font-semibold transition-colors"
+        className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition-colors"
         style={{
           borderColor: "var(--border)",
           background: "var(--suggestion-bg)",
@@ -37,7 +39,7 @@ export function ShareCardActions({ lang, shareUrl, imageUrl }: ShareCardActionsP
       <button
         type="button"
         onClick={handleCopyLink}
-        className="rounded-2xl border px-4 py-3 text-center text-sm font-semibold transition-colors"
+        className="inline-flex items-center justify-center rounded-full border px-3 py-2 text-sm font-medium transition-colors"
         style={{
           borderColor: "var(--border)",
           background: "var(--suggestion-bg)",

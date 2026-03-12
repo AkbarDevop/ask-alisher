@@ -6,6 +6,7 @@ import {
   buildLegacyShareImageUrl,
   buildLegacySharePageUrl,
   getSharePayloadFromSearchParams,
+  normalizeLang,
   truncateShareText,
 } from "@/lib/share";
 
@@ -20,11 +21,19 @@ type PageProps = {
 };
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const payload = getSharePayloadFromSearchParams(await searchParams);
+  const resolvedSearchParams = await searchParams;
+  const payload = getSharePayloadFromSearchParams(resolvedSearchParams);
 
   if (!payload) {
+    const lang = normalizeLang(
+      Array.isArray(resolvedSearchParams.lang)
+        ? resolvedSearchParams.lang[0] || ""
+        : resolvedSearchParams.lang || ""
+    );
+    const t = UI_TEXT[lang];
+
     return {
-      title: "Shared answer not found",
+      title: t.shareNotFoundMetaTitle,
       robots: {
         index: false,
         follow: false,
@@ -68,10 +77,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 }
 
 export default async function SharePage({ searchParams }: PageProps) {
-  const payload = getSharePayloadFromSearchParams(await searchParams);
+  const resolvedSearchParams = await searchParams;
+  const payload = getSharePayloadFromSearchParams(resolvedSearchParams);
 
   if (!payload) {
-    const t = UI_TEXT.en;
+    const lang = normalizeLang(
+      Array.isArray(resolvedSearchParams.lang)
+        ? resolvedSearchParams.lang[0] || ""
+        : resolvedSearchParams.lang || ""
+    );
+    const t = UI_TEXT[lang];
     return (
       <main className="chat-bg flex min-h-screen items-center justify-center px-4">
         <div
@@ -86,9 +101,9 @@ export default async function SharePage({ searchParams }: PageProps) {
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--muted)" }}>
             Ask Alisher
           </p>
-          <h1 className="mb-3 text-2xl font-semibold">Shared answer unavailable</h1>
+          <h1 className="mb-3 text-2xl font-semibold">{t.shareUnavailableTitle}</h1>
           <p className="mb-6 text-sm leading-6" style={{ color: "var(--muted)" }}>
-            This shared link is missing the question or answer preview.
+            {t.shareUnavailableDescription}
           </p>
           <Link
             href="/"

@@ -129,16 +129,16 @@ export function ShareExperience({
               borderColor: "var(--border)",
             }}
           >
-            <div className="mb-4 flex flex-col gap-1">
+            <div className="mb-4 min-w-0 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--muted)" }}>
-                Organic share
+                {t.sharePageEyebrow}
               </p>
               <p className="text-sm leading-6" style={{ color: "var(--foreground)" }}>
-                Share an interesting question-answer pair, let someone preview it cleanly, then move them straight into chat.
+                {t.sharePageDescription}
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-3">
               <Link
                 href={askUrl}
                 className="rounded-2xl px-4 py-3 text-center text-sm font-semibold transition-transform hover:-translate-y-0.5"
@@ -146,21 +146,9 @@ export function ShareExperience({
               >
                 {t.openSharedChat}
               </Link>
-              <Link
-                href="/"
-                className="rounded-2xl border px-4 py-3 text-center text-sm font-semibold transition-colors"
-                style={{
-                  borderColor: "var(--border)",
-                  background: "var(--background)",
-                  color: "var(--foreground)",
-                }}
-              >
-                {t.backToHome}
-              </Link>
-            </div>
-
-            <div className="mt-3">
-              <ShareCardActions lang={lang} shareUrl={sharePageUrl} imageUrl={shareImageUrl} />
+              <div>
+                <ShareCardActions lang={lang} shareUrl={sharePageUrl} imageUrl={shareImageUrl} />
+              </div>
             </div>
           </div>
         </div>
