@@ -379,7 +379,6 @@ export function MessageBubble({
         url: shareUrl,
       });
       const shareData = {
-        title: question?.trim() || "Ask Alisher",
         text: shareText,
       };
       if (navigator.share) {
