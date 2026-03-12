@@ -329,38 +329,6 @@ export function getTelegramQuickActionPrompt(action: string, language: Language)
   return null;
 }
 
-function buildTelegramActionRows(language: Language): TelegramReplyMarkup["inline_keyboard"] {
-  if (language === "en") {
-    return [
-      [
-        { text: "More detail", callback_data: TELEGRAM_CALLBACK_MORE },
-        { text: "Shorter", callback_data: TELEGRAM_CALLBACK_SHORTER },
-      ],
-      [
-        { text: "One example", callback_data: TELEGRAM_CALLBACK_EXAMPLE },
-      ],
-      [
-        { text: "👍 Helpful", callback_data: TELEGRAM_CALLBACK_FEEDBACK_UP },
-        { text: "👎 Not quite", callback_data: TELEGRAM_CALLBACK_FEEDBACK_DOWN },
-      ],
-    ];
-  }
-
-  return [
-    [
-      { text: "Batafsilroq", callback_data: TELEGRAM_CALLBACK_MORE },
-      { text: "Qisqaroq", callback_data: TELEGRAM_CALLBACK_SHORTER },
-    ],
-    [
-      { text: "Yana misol", callback_data: TELEGRAM_CALLBACK_EXAMPLE },
-    ],
-    [
-      { text: "👍 Foydali", callback_data: TELEGRAM_CALLBACK_FEEDBACK_UP },
-      { text: "👎 Uncha emas", callback_data: TELEGRAM_CALLBACK_FEEDBACK_DOWN },
-    ],
-  ];
-}
-
 export function getTelegramFeedbackValue(data: string): "up" | "down" | null {
   if (data === TELEGRAM_CALLBACK_FEEDBACK_UP) return "up";
   if (data === TELEGRAM_CALLBACK_FEEDBACK_DOWN) return "down";
@@ -461,6 +429,12 @@ function escapeTelegramHtml(text: string) {
     .replace(/>/gu, "&gt;");
 }
 
+function renderTelegramInlineFormatting(text: string) {
+  return escapeTelegramHtml(text)
+    .replace(/\*\*(.+?)\*\*/gu, "<b>$1</b>")
+    .replace(/__(.+?)__/gu, "<b>$1</b>");
+}
+
 function normalizeTelegramAnswer(answer: string) {
   return answer
     .replace(/\r\n/gu, "\n")
@@ -482,7 +456,7 @@ function splitTelegramAnswerIntoParagraphs(answer: string): string[] {
   }
 
   const withTransitionBreaks = normalized.replace(
-    /\s+(?=(Bundan tashqari|Shuningdek|Shu bilan birga|Masalan|Xususan|Ayniqsa|Natijada|Bu orqali|Bu tizim orqali|Finally|Also|In addition|For example|That means|As a result)\b)/giu,
+    /\s+(?=(Birinchidan|Ikkinchidan|Uchinchidan|To'rtinchidan|To‘rtinchidan|Beshinchidan|Oltinchidan|Yettinchidan|Sakkizinchidan|To'qqizinchidan|To‘qqizinchidan|Bundan tashqari|Shuningdek|Shu bilan birga|Masalan|Xususan|Ayniqsa|Natijada|Bu orqali|Bu tizim orqali|Finally|First|Second|Third|Fourth|Also|In addition|For example|That means|As a result)\b)/giu,
     "\n\n"
   );
   const transitionParagraphs = withTransitionBreaks
@@ -525,30 +499,48 @@ function splitTelegramAnswerIntoParagraphs(answer: string): string[] {
   return paragraphs;
 }
 
+function formatTelegramParagraph(paragraph: string, options?: { emphasizeLead?: boolean }) {
+  const trimmed = paragraph.trim();
+  if (!trimmed) return "";
+
+  const enumeratorMatch = trimmed.match(
+    /^(Birinchidan|Ikkinchidan|Uchinchidan|To'rtinchidan|To‘rtinchidan|Beshinchidan|Oltinchidan|Yettinchidan|Sakkizinchidan|To'qqizinchidan|To‘qqizinchidan|First|Second|Third|Fourth|Finally),\s*(.+)$/u
+  );
+  if (enumeratorMatch) {
+    return `<b>${escapeTelegramHtml(enumeratorMatch[1])}.</b>\n${renderTelegramInlineFormatting(enumeratorMatch[2])}`;
+  }
+
+  if (!options?.emphasizeLead) {
+    return renderTelegramInlineFormatting(trimmed);
+  }
+
+  const firstSentenceMatch = trimmed.match(/^.+?[.!?](?=\s|$)/u);
+  if (
+    firstSentenceMatch &&
+    firstSentenceMatch[0].trim().length <= 180 &&
+    !/(\*\*|__)/u.test(firstSentenceMatch[0])
+  ) {
+    const lead = firstSentenceMatch[0].trim();
+    const remainder = trimmed.slice(firstSentenceMatch[0].length).trim();
+    return remainder
+      ? `<b>${escapeTelegramHtml(lead)}</b>\n${renderTelegramInlineFormatting(remainder)}`
+      : `<b>${escapeTelegramHtml(lead)}</b>`;
+  }
+
+  return renderTelegramInlineFormatting(trimmed);
+}
+
 function formatTelegramAnswerText(answer: string): string {
   const paragraphs = splitTelegramAnswerIntoParagraphs(answer);
   if (!paragraphs.length) {
-    return trimTelegramMessage(escapeTelegramHtml(answer.trim()));
+    return trimTelegramMessage(renderTelegramInlineFormatting(answer.trim()));
   }
 
   const [firstParagraph, ...rest] = paragraphs;
-  const formattedParagraphs: string[] = [];
-  const firstSentenceMatch = firstParagraph.match(/^.+?[.!?](?=\s|$)/u);
-
-  if (firstSentenceMatch && firstSentenceMatch[0].trim().length <= 180) {
-    const lead = firstSentenceMatch[0].trim();
-    const remainder = firstParagraph.slice(firstSentenceMatch[0].length).trim();
-    formattedParagraphs.push(
-      remainder
-        ? `<b>${escapeTelegramHtml(lead)}</b>\n${escapeTelegramHtml(remainder)}`
-        : `<b>${escapeTelegramHtml(lead)}</b>`
-    );
-  } else {
-    formattedParagraphs.push(escapeTelegramHtml(firstParagraph));
-  }
+  const formattedParagraphs: string[] = [formatTelegramParagraph(firstParagraph, { emphasizeLead: true })];
 
   for (const paragraph of rest) {
-    formattedParagraphs.push(escapeTelegramHtml(paragraph));
+    formattedParagraphs.push(formatTelegramParagraph(paragraph));
   }
 
   return trimTelegramMessage(formattedParagraphs.join("\n\n"));
@@ -578,18 +570,15 @@ function buildTelegramSourceKeyboard(
   sources: TelegramSource[],
   language: Language
 ): TelegramReplyMarkup | undefined {
-  const sourceRows = sources.map((source, index) => [
-    {
-      text: getTelegramSourceLabel(source, index, language),
-      url: source.url,
-    },
-  ]);
-  const inlineKeyboard = [...buildTelegramActionRows(language), ...sourceRows];
-
-  if (!inlineKeyboard.length) return undefined;
+  if (!sources.length) return undefined;
 
   return {
-    inline_keyboard: inlineKeyboard,
+    inline_keyboard: sources.map((source, index) => [
+      {
+        text: getTelegramSourceLabel(source, index, language),
+        url: source.url,
+      },
+    ]),
   };
 }
 
@@ -607,11 +596,6 @@ export function formatTelegramAnswer(
   if (!sources.length || shouldSuppressTelegramSources(answer)) {
     return {
       text: formattedAnswer,
-      replyMarkup: shouldSuppressTelegramSources(answer)
-        ? undefined
-        : {
-            inline_keyboard: buildTelegramActionRows(language),
-          },
       parseMode: "HTML",
     };
   }
