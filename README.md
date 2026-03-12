@@ -64,6 +64,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_GTM_ID=GTM-N3M3DLLG
 NEXT_PUBLIC_GA_MEASUREMENT_IDS=G-BWTQB4SFP4,G-2XNF6BSJG8
 ANALYTICS_DASHBOARD_KEY=your_private_dashboard_key
+SITE_URL=https://askalishersadullaev.netlify.app
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+TELEGRAM_WEBHOOK_SECRET=your_telegram_webhook_secret
+INTERNAL_API_SECRET=your_internal_api_secret
 ```
 
 Important:
@@ -77,6 +81,8 @@ Important:
 - The app now writes a small first-party analytics stream into Supabase for local reporting scripts.
 - The protected first-party analytics dashboard reads `ANALYTICS_DASHBOARD_KEY` from the server environment.
 - The dashboard now includes sparkline KPI cards, anomaly flags, trend charts, conversion flow, prompt splits by language, a traffic health strip, top prompts, CSV export, citation-click analytics, a prompt explorer, a knowledge-base freshness panel, and a recent-events stream at `/admin/analytics`.
+- Telegram bot webhook traffic is handled at `/api/telegram/webhook` and reuses the same Ask Alisher answer engine.
+- `TELEGRAM_WEBHOOK_SECRET` protects the webhook endpoint, and `INTERNAL_API_SECRET` is used only for the internal bot-to-chat API call.
 
 ## Database
 
@@ -154,6 +160,12 @@ Open the protected analytics dashboard:
 /admin/analytics?key=YOUR_ANALYTICS_DASHBOARD_KEY
 ```
 
+Configure the Telegram bot webhook, description, and commands:
+
+```bash
+npm run telegram:setup
+```
+
 ## Run locally
 
 ```bash
@@ -174,6 +186,7 @@ Open `http://localhost:3000`.
 - Durable rate limiting uses the `consume_ask_alisher_rate_limit()` Supabase RPC.
 - First-party analytics events are stored in `ask_alisher_analytics_events` for local reporting.
 - A protected `/admin/analytics` dashboard is available on top of the same first-party analytics table.
+- Telegram bot conversation turns are also stored in `ask_alisher_analytics_events` so the bot can keep short per-chat context.
 - The repo includes a starter regression suite in `evals/alisher-core.json`.
 - The current roadmap is tracked in `docs/roadmap.md`.
 
@@ -193,6 +206,7 @@ scripts/
   import-telegram-posts.ts
   prune-low-signal.ts
   run-evals.ts
+  setup-telegram-bot.ts
   sync-telegram.ts
   download-remaining-yt.py
 docs/

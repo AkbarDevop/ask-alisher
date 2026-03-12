@@ -13,6 +13,7 @@
     "analytics:summary": "tsx scripts/analytics-report.ts",
     "evals:core": "tsx scripts/run-evals.ts --file=evals/alisher-core.json",
     "prune:low-signal": "tsx scripts/prune-low-signal.ts",
+    "telegram:setup": "tsx scripts/setup-telegram-bot.ts",
     "sync:telegram": "tsx scripts/sync-telegram.ts",
     "sync:telegram:all": "tsx scripts/sync-telegram.ts --all"
   },

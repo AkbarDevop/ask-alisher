@@ -13,6 +13,12 @@ export const maxDuration = 60;
 const RATE_LIMIT = 30;
 const RATE_WINDOW_SECONDS = 60;
 
+function isInternalChatRequest(req: Request) {
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) return false;
+  return req.headers.get("x-ask-alisher-internal") === secret;
+}
+
 // --- Input sanitization ---
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_MESSAGES = 50;
@@ -792,27 +798,29 @@ const SOURCE_LABELS: Record<string, string> = {
 
 export async function POST(req: Request) {
   // --- Rate limiting ---
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
+  if (!isInternalChatRequest(req)) {
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
 
-  const rateLimit = await consumeAskAlisherRateLimit(ip, RATE_LIMIT, RATE_WINDOW_SECONDS);
-  if (!rateLimit.allowed) {
-    const retryAfterSeconds = Math.max(
-      1,
-      Math.ceil((Date.parse(rateLimit.resetAt) - Date.now()) / 1000)
-    );
-    return new Response(
-      JSON.stringify({ error: "Too many requests. Please wait a moment." }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "Retry-After": String(retryAfterSeconds),
-        },
-      }
-    );
+    const rateLimit = await consumeAskAlisherRateLimit(ip, RATE_LIMIT, RATE_WINDOW_SECONDS);
+    if (!rateLimit.allowed) {
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((Date.parse(rateLimit.resetAt) - Date.now()) / 1000)
+      );
+      return new Response(
+        JSON.stringify({ error: "Too many requests. Please wait a moment." }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfterSeconds),
+          },
+        }
+      );
+    }
   }
 
   // --- Validate & sanitize input ---
