@@ -1,11 +1,15 @@
 import { consumeAskAlisherRateLimit } from "@/lib/rate-limit";
 import {
-  buildTelegramHelpText,
-  buildTelegramWelcomeText,
+  buildTelegramHelpTextForLanguage,
+  buildTelegramNonTextReply,
+  buildTelegramRateLimitReply,
+  buildTelegramResetText,
+  buildTelegramWelcomeTextForLanguage,
   clearTelegramHistory,
   fetchTelegramHistory,
   formatTelegramAnswer,
   getTelegramMessageLanguage,
+  getTelegramUiLanguage,
   getTelegramWebhookSecret,
   requestAskAlisherReply,
   sendTelegramMessage,
@@ -31,6 +35,7 @@ type TelegramUpdate = {
       is_bot?: boolean;
       username?: string;
       first_name?: string;
+      language_code?: string;
     };
   };
 };
@@ -70,12 +75,13 @@ export async function POST(req: Request) {
   const text = message.text?.trim() || "";
   const requestOrigin = new URL(req.url).origin;
   const siteUrl = getPublicSiteUrl(req);
+  const uiLanguage = getTelegramUiLanguage(message.from?.language_code);
 
   if (!text) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: "Hozircha faqat matnli savollarni qabul qilaman.",
+      text: buildTelegramNonTextReply(uiLanguage),
     }).catch((error) => {
       console.error("Telegram non-text reply failed:", error);
     });
@@ -90,7 +96,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramWelcomeText(siteUrl),
+      text: buildTelegramWelcomeTextForLanguage(siteUrl, uiLanguage),
     }).catch((error) => {
       console.error("Telegram /start reply failed:", error);
     });
@@ -102,7 +108,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramHelpText(siteUrl),
+      text: buildTelegramHelpTextForLanguage(siteUrl, uiLanguage),
     }).catch((error) => {
       console.error("Telegram /help reply failed:", error);
     });
@@ -117,7 +123,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: "Suhbat yangidan boshlandi. Yangi savolingizni yuboring.",
+      text: buildTelegramResetText(uiLanguage),
     }).catch((error) => {
       console.error("Telegram /new reply failed:", error);
     });
@@ -135,7 +141,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: "Juda ko'p so'rov yuborildi. Iltimos, biroz kutib qayta urinib ko'ring.",
+      text: buildTelegramRateLimitReply(uiLanguage),
     }).catch((error) => {
       console.error("Telegram rate-limit reply failed:", error);
     });

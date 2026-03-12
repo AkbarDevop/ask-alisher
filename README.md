@@ -160,7 +160,7 @@ Open the protected analytics dashboard:
 /admin/analytics?key=YOUR_ANALYTICS_DASHBOARD_KEY
 ```
 
-Configure the Telegram bot webhook, description, and commands:
+Configure the Telegram bot webhook, descriptions, commands, menu button, and profile photo:
 
 ```bash
 npm run telegram:setup
