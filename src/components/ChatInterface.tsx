@@ -1157,53 +1157,8 @@ export function ChatInterface() {
         <div className="mx-auto max-w-2xl space-y-5">
           {/* Hero */}
           {messages.length === 0 && (
-            <div className="hero-glow flex flex-col items-center gap-6 pt-6 sm:gap-8 sm:pt-12">
-              <div className="flex max-w-2xl flex-col items-center gap-4 text-center">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <span
-                    className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em]"
-                    style={{
-                      background: "var(--suggestion-bg)",
-                      border: "1px solid var(--border)",
-                      color: "var(--muted)",
-                    }}
-                  >
-                    {t.heroEyebrow}
-                  </span>
-                  <span
-                    className="rounded-full px-3 py-1 text-[10px] font-medium"
-                    style={{
-                      background: "var(--suggestion-bg)",
-                      border: "1px solid var(--border)",
-                      color: "var(--foreground)",
-                    }}
-                  >
-                    {lang === "uz" ? "Sana bo'yicha sezgir" : "Date-aware"}
-                  </span>
-                  <span
-                    className="rounded-full px-3 py-1 text-[10px] font-medium"
-                    style={{
-                      background: "var(--suggestion-bg)",
-                      border: "1px solid var(--border)",
-                      color: "var(--foreground)",
-                    }}
-                  >
-                    {lang === "uz" ? "Ommaviy manbalar" : "Public-source grounded"}
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.5rem]">
-                    {t.heroTitle}
-                  </h1>
-                  <p className="mx-auto max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--foreground)" }}>
-                    {t.heroDescription}
-                  </p>
-                  <p className="mx-auto max-w-xl text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
-                    {t.heroSupport}
-                  </p>
-                </div>
-              </div>
-              <AlisherAvatar size="lg" lang={lang} />
+            <div className="hero-glow flex flex-col items-center gap-6 pt-6 sm:gap-10 sm:pt-12">
+              <AlisherAvatar size="lg" />
               <SuggestedQuestions key={lang} onSelect={handleSuggestedQuestion} lang={lang} />
               <p className="text-xs" style={{ color: "var(--muted)", maxWidth: "36rem", textAlign: "center" }}>
                 {t.poweredBy}
