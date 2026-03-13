@@ -343,19 +343,19 @@ function buildStaticRefusalText(options: {
 }): string {
   if (options.isFutureDate) {
     return options.prefersUzbek
-      ? "Siz so'rayotgan sana hali kelajakda. Shu davrga oid ommaviy post yoki chiqish bo'lishi mumkin emas."
-      : "The date you are asking about is still in the future, so there cannot be any public posts or talks from that period yet.";
+      ? "Bu sana hali kelajakda. Shu davr haqida ochiq gapirganim bo'lishi mumkin emas."
+      : "I have not shared anything publicly from that future date, because it has not happened yet.";
   }
 
   if (options.isPrivateOrInternal) {
     return options.prefersUzbek
-      ? "Bu shaxsiy yoki ommaga e'lon qilinmagan ma'lumot. Men faqat ommaviy manbalarga tayangan holda javob bera olaman."
-      : "That is private or unannounced information. I can only answer from public material.";
+      ? "Bu shaxsiy yoki ommaga e'lon qilinmagan ma'lumot. Buni omma bilan ulashmaganman."
+      : "That is not something I have shared publicly, and I cannot help with private or unannounced information.";
   }
 
   if (options.isOutOfScope) {
     return options.prefersUzbek
-      ? "Bu mavzu bo'yicha ommaviy fikr bildirganimni ko'rmayapman, shuning uchun taxmin qilmayman."
+      ? "Bu mavzu bo'yicha ochiq fikr bildirganim yo'q, shuning uchun taxmin qilmayman."
       : "I have not spoken publicly about that topic, so I will not guess.";
   }
 
@@ -455,7 +455,7 @@ function buildQueryIntent(
     /\bsenator|stanford|federation|agentligi|yoshlar ishlari\b/iu.test(normalized);
   const prefersLongForm =
     !prefersTelegram &&
-    /\b(why|how|explain|mindset|principle|principles|approach|strategy|belief|beliefs|lesson|lessons|advice|mistake|mistakes|framework|frameworks)\b/iu
+    /\b(why|how|explain|mindset|principle|principles|approach|strategy|belief|beliefs|lesson|lessons|advice|mistake|mistakes|framework|frameworks|personally|meaning)\b/iu
       .test(normalized);
   const prefersConcreteUpdates =
     prefersTelegram ||
