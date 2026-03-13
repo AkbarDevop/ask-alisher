@@ -158,7 +158,7 @@ function inferSourceAuthority(
   const explicit = structuredMetadata.SourceAuthority || structuredMetadata.source_authority;
   if (explicit) return explicit.toLowerCase();
 
-  if (sourceDomain === "gov.uz") return "official";
+  if (["gov.uz", "president.uz", "senat.uz"].includes(sourceDomain || "")) return "official";
   if (sourceDomain === "t.me") return "social";
   if (sourceDomain?.includes("youtube")) return "platform";
   if (sourceDomain?.includes("linkedin")) return "professional_network";
@@ -188,6 +188,12 @@ function inferDomainTags(
   }
   if (organization.includes("youth affairs agency")) {
     tags.add("youth_affairs_agency");
+  }
+  if (organization.includes("president of the republic of uzbekistan")) {
+    tags.add("presidency");
+  }
+  if (organization.includes("senate of the oly majlis")) {
+    tags.add("senate");
   }
   if (sourceDomain === "t.me") {
     tags.add("telegram_channel");

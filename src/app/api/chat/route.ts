@@ -484,6 +484,12 @@ function getChunkDomainTags(chunk: Chunk): string[] {
   if (sourceDomain === "gov.uz") {
     inferred.push("official", "government", "youth_affairs_agency");
   }
+  if (sourceDomain === "president.uz") {
+    inferred.push("official", "government", "presidency");
+  }
+  if (sourceDomain === "senat.uz") {
+    inferred.push("official", "government", "senate");
+  }
   if (sourceDomain === "t.me") {
     inferred.push("social", "telegram_channel");
   }
@@ -518,7 +524,7 @@ function getChunkSourceAuthority(chunk: Chunk): string | null {
   if (chunk.metadata?.is_official === true) return "official";
 
   const domain = getChunkSourceDomain(chunk);
-  if (domain === "gov.uz") return "official";
+  if (["gov.uz", "president.uz", "senat.uz"].includes(domain || "")) return "official";
   if (domain === "t.me") return "social";
   if (domain?.includes("youtube")) return "platform";
 
