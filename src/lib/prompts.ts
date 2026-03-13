@@ -205,7 +205,7 @@ export const UI_TEXT = {
       "Best when you ask about a recent public update, a concrete initiative, or a bigger belief he has repeated across interviews and talks.",
     heroPromptIntro: "Start with one of these threads",
     heroSignals: ["Recent updates", "Deeper questions", "Unexpected angles"],
-    poweredBy: "Gemini-powered · Grounded in Telegram posts, interviews, and public talks",
+    poweredBy: "Gemini-powered · Grounded in public sources",
     newChat: "New chat",
     placeholder: "Ask Alisher anything...",
     moreSuggestions: "More suggestions",
@@ -258,8 +258,7 @@ export const UI_TEXT = {
       "Eng yaxshi natija uchun yaqindagi ommaviy yangilanish, aniq dastur yoki u ko'p takrorlaydigan katta g'oya haqida so'rang.",
     heroPromptIntro: "Suhbatni shu yo'nalishlardan boshlang",
     heroSignals: ["So'nggi mavzular", "Chuqur savollar", "Kutilmagan burchaklar"],
-    poweredBy:
-      "Gemini asosida · Telegram postlari, intervyular va ommaviy chiqishlarga tayangan",
+    poweredBy: "Gemini asosida · Ommaviy manbalarga tayangan",
     newChat: "Yangi suhbat",
     placeholder: "Alisherga savol bering...",
     moreSuggestions: "Boshqa savollar",
