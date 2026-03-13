@@ -88,6 +88,8 @@ const stopWords = new Set([
 
 const TELEGRAM_QUERY_PATTERN = /\b(telegram|channel|post|posted|t\.me|kanal|postlar)\b/iu;
 const RECENT_QUERY_PATTERN = /\b(latest|recent|recently|lately|current|currently|these days|right now|past month|last month|last week|this month)\b/iu;
+const PRIVATE_OR_INTERNAL_QUERY_PATTERN =
+  /\b(private|personal|phone number|email address|home address|secret|confidential|internal decisions?|never announced|unannounced|private government|never shared publicly)\b/iu;
 const MONTH_LOOKUP: Record<string, number> = {
   january: 0,
   jan: 0,
@@ -317,6 +319,15 @@ function parseQueryDateScope(query: string, now = new Date()): QueryDateScope | 
 
 function shouldPreferTelegram(userMessage: string): boolean {
   return TELEGRAM_QUERY_PATTERN.test(userMessage) || RECENT_QUERY_PATTERN.test(userMessage);
+}
+
+function isPrivateOrInternalQuery(userMessage: string): boolean {
+  return PRIVATE_OR_INTERNAL_QUERY_PATTERN.test(userMessage);
+}
+
+function isFutureDateScope(scope: QueryDateScope | null): boolean {
+  if (!scope) return false;
+  return scope.start.getTime() > Date.now() + 24 * 60 * 60 * 1000;
 }
 
 function readMetadataValue(chunk: Chunk, key: string): string | null {
@@ -551,9 +562,17 @@ function chunkMentionsKeyword(chunk: Chunk, keyword: string): boolean {
 function shouldAttachSources(
   chunks: Chunk[],
   userMessage: string,
-  options: { dateScope: QueryDateScope | null; telegramFocused: boolean }
+  options: {
+    dateScope: QueryDateScope | null;
+    telegramFocused: boolean;
+    sourceContextSummary?: SourceContextSummary | null;
+  }
 ): boolean {
   if (chunks.length === 0) return false;
+
+  if (isPrivateOrInternalQuery(userMessage)) return false;
+  if (isFutureDateScope(options.dateScope)) return false;
+  if (options.sourceContextSummary?.limitedConfidence) return false;
 
   if (options.dateScope) return true;
 
@@ -677,6 +696,45 @@ async function fetchSupplementalTelegramChunks(
     })
     .slice(0, scope?.explicit ? 8 : 6)
     .map((entry) => entry.chunk);
+}
+
+async function fetchSupplementalPublicSourceChunks(
+  userMessage: string,
+  intent: QueryIntent
+): Promise<Chunk[]> {
+  if (!intent.prefersBalancedSources && !intent.prefersLongForm && !intent.prefersBiography) {
+    return [];
+  }
+
+  const keywords = extractKeywords(userMessage).slice(0, 6);
+  const sourceTypes = [
+    "interview",
+    "article",
+    "youtube",
+    "youtube_transcript",
+    "linkedin",
+    "linkedin_post",
+    "book",
+    "bio",
+  ];
+
+  let query = getSupabase()
+    .from(KNOWLEDGE_BASE_TABLE)
+    .select("id, content, source_type, source_url, metadata")
+    .in("source_type", sourceTypes)
+    .limit(18);
+
+  if (keywords.length > 0) {
+    query = query.or(keywords.map((keyword) => `content.ilike.%${keyword}%`).join(","));
+  } else {
+    query = query.order("id", { ascending: false });
+  }
+
+  const { data } = await query;
+  const rows = (data as Chunk[] | null) ?? [];
+  if (rows.length === 0) return [];
+
+  return preferHighSignalChunks(rows);
 }
 
 function selectContextChunks(
@@ -981,6 +1039,21 @@ export async function POST(req: Request) {
     });
   }
 
+  const supplementalPublicChunks = await fetchSupplementalPublicSourceChunks(userMessage, buildQueryIntent(userMessage, {
+    dateScope: userDateScope,
+    telegramFocused: telegramFocusedQuestion,
+  }));
+  if (supplementalPublicChunks.length > 0) {
+    const merged = [...supplementalPublicChunks, ...(chunks || [])];
+    const seen = new Set<string>();
+    chunks = merged.filter((chunk) => {
+      const key = `${chunk.source_url}::${chunk.content}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
   // 2. Fallback: keyword ILIKE search
   if (!chunks || chunks.length < 3) {
     const keywords = extractKeywords(retrievalQuery);
@@ -1082,8 +1155,14 @@ export async function POST(req: Request) {
     userDateScope
       ? `The user is asking about Telegram content from ${userDateScope.label}. Do not answer with posts from outside that window.`
       : "",
+    isFutureDateScope(userDateScope)
+      ? "The requested date is in the future. Say clearly that there cannot be public material from that future date and do not cite unrelated older sources."
+      : "",
     !userDateScope && supplementalTelegramChunks.length > 0
       ? "The user is asking about recent or latest thinking. Prioritize the freshest dated Telegram posts in the context."
+      : "",
+    isPrivateOrInternalQuery(userMessage)
+      ? "The user is asking for private, internal, or unannounced information. Refuse clearly and do not answer from adjacent public context."
       : "",
     sourceContextSummary?.latestPublishedLabel && (queryIntent.prefersRecent || Boolean(userDateScope))
       ? `The freshest dated public item in context is ${sourceContextSummary.latestPublishedLabel}.`
@@ -1092,7 +1171,7 @@ export async function POST(req: Request) {
       ? `This is not a truly current update. Say clearly that the newest public material available here is from ${sourceContextSummary.latestPublishedLabel}, and do not imply newer public updates exist.`
       : "",
     sourceContextSummary?.limitedConfidence
-      ? "The retrieved public context is limited or only loosely matched. Say that clearly early, keep the answer concise, and avoid broad claims. If needed, say you have not spoken publicly about this in detail."
+      ? "The retrieved public context is limited or only loosely matched. Say that clearly early, keep the answer concise, and avoid broad claims. If the match is weak, say you have not spoken publicly about this in detail instead of stretching adjacent material."
       : "",
     sourceContextSummary?.hasMixedSources && queryIntent.prefersBalancedSources
       ? "Use the mix of Telegram posts, interviews, talks, and profile material when answering broad questions."
@@ -1118,6 +1197,7 @@ export async function POST(req: Request) {
   const attachSources = shouldAttachSources(selectedChunks, userMessage, {
     dateScope: userDateScope,
     telegramFocused: telegramFocusedQuestion,
+    sourceContextSummary,
   });
   const citationChunks = preferHighSignalChunks(selectedChunks);
 
