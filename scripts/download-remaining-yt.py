@@ -23,11 +23,12 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--priority", choices=["all", "high", "medium"], default="all")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--manifest", default=MANIFEST)
     return parser.parse_args()
 
 
-def load_manifest():
-    with open(MANIFEST, "r", encoding="utf-8") as handle:
+def load_manifest(manifest_path):
+    with open(manifest_path, "r", encoding="utf-8") as handle:
         return json.load(handle)
 
 
@@ -42,7 +43,7 @@ def pick_transcript(video_id):
 
 
 args = parse_args()
-videos = load_manifest()
+videos = load_manifest(args.manifest)
 if args.priority != "all":
     videos = [video for video in videos if video.get("priority") == args.priority]
 
