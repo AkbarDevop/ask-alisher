@@ -92,7 +92,9 @@ export type AnalyticsRecentEvent = {
 export type AnalyticsSummary = {
   days: number;
   totalEvents: number;
+  excludedEvents: number;
   uniqueSessions: number;
+  excludedSessions: number;
   promptSubmits: number;
   firstResponses: number;
   responseErrors: number;
@@ -159,6 +161,56 @@ function getUrlHost(value: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+function getCanonicalAnalyticsHosts(): Set<string> {
+  const hosts = new Set<string>(["askalishersadullaev.netlify.app"]);
+  const candidates = [process.env.SITE_URL, process.env.NEXT_PUBLIC_SITE_URL];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const host = getUrlHost(candidate);
+    if (host) hosts.add(host);
+  }
+
+  return hosts;
+}
+
+function isPreviewHostname(hostname: string | null): boolean {
+  if (!hostname) return false;
+  return /--askalishersadullaev\.netlify\.app$/u.test(hostname);
+}
+
+function isInternalAnalyticsRow(row: AnalyticsRow): boolean {
+  const source = typeof row.metadata?.source === "string" ? row.metadata.source : null;
+  const hostname = row.hostname;
+
+  if (source === "smoke_test" || source === "eval" || source === "internal") {
+    return true;
+  }
+
+  if (!hostname) {
+    return false;
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "telegram") {
+    return true;
+  }
+
+  if (isPreviewHostname(hostname)) {
+    return true;
+  }
+
+  const canonicalHosts = getCanonicalAnalyticsHosts();
+  if (hostname.endsWith(".netlify.app") && !canonicalHosts.has(hostname)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function filterDashboardAnalyticsRows(rows: AnalyticsRow[]): AnalyticsRow[] {
+  return rows.filter((row) => !isInternalAnalyticsRow(row));
 }
 
 function buildDailySeed(days: number): AnalyticsDailyTrendPoint[] {
@@ -291,7 +343,10 @@ export async function fetchKnowledgeBaseFreshness(): Promise<AnalyticsFreshnessS
 }
 
 export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): AnalyticsSummary {
-  const uniqueSessions = new Set(rows.map((row) => row.session_id).filter(Boolean));
+  const filteredRows = filterDashboardAnalyticsRows(rows);
+  const excludedRows = rows.filter((row) => isInternalAnalyticsRow(row));
+  const uniqueSessions = new Set(filteredRows.map((row) => row.session_id).filter(Boolean));
+  const excludedSessions = new Set(excludedRows.map((row) => row.session_id).filter(Boolean));
   const eventCounts = new Map<string, number>();
   const languages = new Map<string, number>();
   const hostnames = new Map<string, number>();
@@ -308,7 +363,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
   let responseTimeCount = 0;
   const dailyResponseTimeTotals = new Map<string, { total: number; count: number }>();
 
-  for (const row of rows) {
+  for (const row of filteredRows) {
     incrementCounter(eventCounts, row.event_name);
     incrementCounter(languages, row.language);
     incrementCounter(hostnames, row.hostname);
@@ -381,7 +436,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     }
   }
 
-  const recentEvents: AnalyticsRecentEvent[] = rows.slice(0, 40).map((row, index) => ({
+  const recentEvents: AnalyticsRecentEvent[] = filteredRows.slice(0, 40).map((row, index) => ({
     id: `${row.created_at}-${row.event_name}-${index}`,
     createdAt: row.created_at,
     eventName: row.event_name,
@@ -430,7 +485,7 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
     .sort((a, b) => b.total - a.total);
 
   const rowsBySession = new Map<string, AnalyticsRow[]>();
-  for (const row of rows) {
+  for (const row of filteredRows) {
     const key = row.session_id || "unknown";
     const bucket = rowsBySession.get(key) || [];
     bucket.push(row);
@@ -560,8 +615,10 @@ export function buildAnalyticsSummary(rows: AnalyticsRow[], days: number): Analy
 
   return {
     days,
-    totalEvents: rows.length,
+    totalEvents: filteredRows.length,
+    excludedEvents: excludedRows.length,
     uniqueSessions: uniqueSessions.size,
+    excludedSessions: excludedSessions.size,
     promptSubmits,
     firstResponses,
     responseErrors,

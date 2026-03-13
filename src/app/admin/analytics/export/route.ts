@@ -1,4 +1,4 @@
-import { fetchAnalyticsRows } from "@/lib/analytics-report";
+import { fetchAnalyticsRows, filterDashboardAnalyticsRows } from "@/lib/analytics-report";
 
 function escapeCsv(value: string | number | null | undefined): string {
   const normalized = value === null || value === undefined ? "" : String(value);
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
   }
 
   const days = getDaysParam(url.searchParams.get("days"));
-  const rows = await fetchAnalyticsRows(days);
+  const rows = filterDashboardAnalyticsRows(await fetchAnalyticsRows(days));
 
   const header = [
     "created_at",

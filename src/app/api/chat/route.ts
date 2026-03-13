@@ -190,6 +190,8 @@ type SourceContextSummary = {
   latestPublishedLabel?: string;
   latestPublishedMs: number;
   stale: boolean;
+  limitedConfidence: boolean;
+  limitedReasonCodes: string[];
   recencyRequested: boolean;
   sourceFamilies: SourceFamily[];
   hasMixedSources: boolean;
@@ -749,11 +751,13 @@ function preferHighSignalChunks(chunks: Chunk[]): Chunk[] {
 
 function buildSourceContextSummary(
   chunks: Chunk[],
+  userMessage: string,
   options: { recencyRequested: boolean }
 ): SourceContextSummary | null {
   if (chunks.length === 0) return null;
 
   const sourceFamilies = [...new Set(chunks.map((chunk) => getChunkSourceFamily(chunk)))];
+  const uniqueSources = new Set(chunks.map((chunk) => chunk.source_url || chunk.source_type));
   const latestPublishedMs = chunks.reduce((latest, chunk) => {
     const next = getChunkPublishedAtMs(chunk);
     return next > latest ? next : latest;
@@ -769,12 +773,33 @@ function buildSourceContextSummary(
     latestPublishedMs > 0
       ? Math.max(0, (Date.now() - latestPublishedMs) / (24 * 60 * 60 * 1000))
       : Number.POSITIVE_INFINITY;
+  const queryKeywords = extractKeywords(userMessage).filter((keyword) => keyword.length >= 4);
+  const coveredKeywords = new Set(
+    queryKeywords.filter((keyword) => chunks.some((chunk) => chunkMentionsKeyword(chunk, keyword)))
+  );
+  const queryTopics = inferTopics(userMessage);
+  const topicOverlap =
+    queryTopics.length === 0 ||
+    chunks.some((chunk) => getChunkTopics(chunk).some((topic) => queryTopics.includes(topic)));
+  const limitedReasonCodes: string[] = [];
+
+  if (uniqueSources.size < 2) {
+    limitedReasonCodes.push("sparse");
+  }
+  if (queryKeywords.length >= 3 && coveredKeywords.size < Math.min(2, queryKeywords.length)) {
+    limitedReasonCodes.push("weak_match");
+  }
+  if (queryTopics.length > 0 && !topicOverlap) {
+    limitedReasonCodes.push("topic_gap");
+  }
 
   return {
     latestPublishedAt,
     latestPublishedLabel,
     latestPublishedMs,
     stale: options.recencyRequested && (!latestPublishedMs || ageDays > 45),
+    limitedConfidence: limitedReasonCodes.length > 0,
+    limitedReasonCodes,
     recencyRequested: options.recencyRequested,
     sourceFamilies,
     hasMixedSources: sourceFamilies.length > 1,
@@ -1032,7 +1057,7 @@ export async function POST(req: Request) {
         profileReserve: queryIntent.prefersBiography ? 2 : 0,
       })
     : [];
-  const sourceContextSummary = buildSourceContextSummary(selectedChunks, {
+  const sourceContextSummary = buildSourceContextSummary(selectedChunks, userMessage, {
     recencyRequested: queryIntent.prefersRecent || Boolean(userDateScope),
   });
 
@@ -1065,6 +1090,9 @@ export async function POST(req: Request) {
       : "",
     sourceContextSummary?.stale && sourceContextSummary.latestPublishedLabel
       ? `This is not a truly current update. Say clearly that the newest public material available here is from ${sourceContextSummary.latestPublishedLabel}, and do not imply newer public updates exist.`
+      : "",
+    sourceContextSummary?.limitedConfidence
+      ? "The retrieved public context is limited or only loosely matched. Say that clearly early, keep the answer concise, and avoid broad claims. If needed, say you have not spoken publicly about this in detail."
       : "",
     sourceContextSummary?.hasMixedSources && queryIntent.prefersBalancedSources
       ? "Use the mix of Telegram posts, interviews, talks, and profile material when answering broad questions."
@@ -1131,6 +1159,8 @@ export async function POST(req: Request) {
             type: "source-context",
             latestPublishedAt: sourceContextSummary.latestPublishedAt,
             stale: sourceContextSummary.stale,
+            limitedConfidence: sourceContextSummary.limitedConfidence,
+            limitedReasonCodes: sourceContextSummary.limitedReasonCodes,
             recencyRequested: sourceContextSummary.recencyRequested,
             sourceFamilies: sourceContextSummary.sourceFamilies,
             hasMixedSources: sourceContextSummary.hasMixedSources,

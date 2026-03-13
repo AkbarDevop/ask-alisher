@@ -951,6 +951,12 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
                 Built around the same dashboard patterns you see in product analytics tools: headline KPIs, trend
                 lines, a conversion funnel, distribution splits, and a live recent-activity feed.
               </p>
+              {summary.excludedEvents > 0 ? (
+                <p className="mt-3 max-w-2xl text-xs leading-6 text-slate-400 sm:text-sm">
+                  Excluding {formatCompactNumber(summary.excludedEvents)} preview, local, smoke-test, or internal event
+                  {summary.excludedEvents === 1 ? "" : "s"} from the headline metrics.
+                </p>
+              ) : null}
 
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
@@ -1031,7 +1037,7 @@ export default async function AnalyticsAdminPage({ searchParams }: PageProps) {
           <KpiCard
             label="Events"
             value={formatCompactNumber(summary.totalEvents)}
-            detail="all first-party events collected"
+            detail="cleaned first-party events after excluding test traffic"
             tone="blue"
             points={summary.dailyTrend.map((point) => point.events)}
           />

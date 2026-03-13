@@ -144,6 +144,8 @@ function buildSourceContextCopy(
     | {
         latestPublishedAt?: string;
         stale?: boolean;
+        limitedConfidence?: boolean;
+        limitedReasonCodes?: string[];
         recencyRequested?: boolean;
         sourceFamilies: string[];
         hasMixedSources?: boolean;
@@ -154,6 +156,27 @@ function buildSourceContextCopy(
   if (!context) return null;
 
   const latestLabel = formatSourceDate(context.latestPublishedAt, lang);
+  const reasons = context.limitedReasonCodes || [];
+
+  if (context.limitedConfidence) {
+    const detail =
+      reasons.includes("topic_gap")
+        ? lang === "uz"
+          ? "Topilgan ommaviy material savolga to'liq mos tushmadi. Javobni ehtiyotkorroq o'qing."
+          : "The retrieved public material only partially matches this question, so treat the answer more cautiously."
+        : reasons.includes("weak_match")
+          ? lang === "uz"
+            ? "Bu javob kuchli mos tushgan ommaviy manbalarga emas, cheklangan kontekstga tayangan."
+            : "This answer leans on limited public context rather than strongly matched sources."
+          : lang === "uz"
+            ? "Bu mavzu bo'yicha ommaviy kontekst cheklangan, shuning uchun javob ehtiyotkorroq berildi."
+            : "Public context on this topic is limited, so the answer was kept more cautious.";
+
+    return {
+      title: lang === "uz" ? "Cheklangan ommaviy kontekst" : "Limited public context",
+      detail,
+    };
+  }
 
   if (context.recencyRequested && latestLabel) {
     return {
@@ -399,6 +422,8 @@ export function MessageBubble({
                 type: "source-context";
                 latestPublishedAt?: string;
                 stale?: boolean;
+                limitedConfidence?: boolean;
+                limitedReasonCodes?: string[];
                 recencyRequested?: boolean;
                 sourceFamilies?: string[];
                 hasMixedSources?: boolean;
@@ -420,6 +445,8 @@ export function MessageBubble({
             ? {
                 latestPublishedAt: sourceContext.latestPublishedAt,
                 stale: sourceContext.stale,
+                limitedConfidence: sourceContext.limitedConfidence,
+                limitedReasonCodes: Array.isArray(sourceContext.limitedReasonCodes) ? sourceContext.limitedReasonCodes : [],
                 recencyRequested: sourceContext.recencyRequested,
                 sourceFamilies: Array.isArray(sourceContext.sourceFamilies) ? sourceContext.sourceFamilies : [],
                 hasMixedSources: sourceContext.hasMixedSources,

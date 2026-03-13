@@ -9,11 +9,17 @@ type EvalSpec = {
   question: string;
   language?: "en" | "uz";
   min_sources?: number;
+  max_sources?: number;
   required_topics_any?: string[];
   required_source_types_any?: string[];
+  required_source_families_any?: string[];
   must_include_any?: string[];
+  must_not_include_any?: string[];
   refusal_expected?: boolean;
+  refusal_disallow_sources?: boolean;
   require_snippets?: boolean;
+  require_stale_context?: boolean;
+  require_limited_confidence?: boolean;
 };
 
 type EvalSource = {
@@ -24,10 +30,19 @@ type EvalSource = {
   topics?: string[];
 };
 
+type EvalSourceContext = {
+  latestPublishedAt?: string;
+  stale?: boolean;
+  limitedConfidence?: boolean;
+  sourceFamilies?: string[];
+  hasMixedSources?: boolean;
+};
+
 type EvalResult = {
   spec: EvalSpec;
   answer: string;
   sources: EvalSource[];
+  sourceContext: EvalSourceContext | null;
   failures: string[];
 };
 
@@ -51,7 +66,7 @@ function readEvalFile(filePath: string): EvalSpec[] {
   return JSON.parse(raw) as EvalSpec[];
 }
 
-async function streamChat(baseUrl: string, spec: EvalSpec): Promise<{ answer: string; sources: EvalSource[] }> {
+async function streamChat(baseUrl: string, spec: EvalSpec): Promise<{ answer: string; sources: EvalSource[]; sourceContext: EvalSourceContext | null }> {
   const payload = {
     messages: [
       {
@@ -77,6 +92,7 @@ async function streamChat(baseUrl: string, spec: EvalSpec): Promise<{ answer: st
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   const sources: EvalSource[] = [];
+  let sourceContext: EvalSourceContext | null = null;
   const textParts = new Map<string, string>();
   const seenSources = new Set<string>();
   let buffer = "";
@@ -93,11 +109,28 @@ async function streamChat(baseUrl: string, spec: EvalSpec): Promise<{ answer: st
           snippet?: string;
           topics?: string[];
         }
+      | {
+          type: "source-context";
+          latestPublishedAt?: string;
+          stale?: boolean;
+          limitedConfidence?: boolean;
+          sourceFamilies?: string[];
+          hasMixedSources?: boolean;
+        }
       | { type: "text-start"; id: string }
       | { type: "text-delta"; id: string; delta: string }
       | { type: string };
 
     switch (event.type) {
+      case "source-context":
+        sourceContext = {
+          latestPublishedAt: event.latestPublishedAt,
+          stale: event.stale,
+          limitedConfidence: event.limitedConfidence,
+          sourceFamilies: event.sourceFamilies,
+          hasMixedSources: event.hasMixedSources,
+        };
+        return;
       case "source-url":
         if (seenSources.has(event.sourceId)) return;
         seenSources.add(event.sourceId);
@@ -161,10 +194,16 @@ async function streamChat(baseUrl: string, spec: EvalSpec): Promise<{ answer: st
   return {
     answer: [...textParts.values()].join("").trim(),
     sources,
+    sourceContext,
   };
 }
 
-function evaluateResult(spec: EvalSpec, answer: string, sources: EvalSource[]): string[] {
+function evaluateResult(
+  spec: EvalSpec,
+  answer: string,
+  sources: EvalSource[],
+  sourceContext: EvalSourceContext | null
+): string[] {
   const failures: string[] = [];
   const normalizedAnswer = answer.toLowerCase();
 
@@ -174,6 +213,10 @@ function evaluateResult(spec: EvalSpec, answer: string, sources: EvalSource[]): 
 
   if (typeof spec.min_sources === "number" && sources.length < spec.min_sources) {
     failures.push(`expected at least ${spec.min_sources} sources, got ${sources.length}`);
+  }
+
+  if (typeof spec.max_sources === "number" && sources.length > spec.max_sources) {
+    failures.push(`expected at most ${spec.max_sources} sources, got ${sources.length}`);
   }
 
   if (spec.require_snippets && sources.length > 0 && !sources.some((source) => source.snippet?.trim())) {
@@ -199,10 +242,26 @@ function evaluateResult(spec: EvalSpec, answer: string, sources: EvalSource[]): 
   }
 
   if (
+    spec.required_source_families_any?.length &&
+    !spec.required_source_families_any.some((family) => sourceContext?.sourceFamilies?.includes(family))
+  ) {
+    failures.push(
+      `expected source families to include one of: ${spec.required_source_families_any.join(", ")}`
+    );
+  }
+
+  if (
     spec.must_include_any?.length &&
     !spec.must_include_any.some((needle) => normalizedAnswer.includes(needle.toLowerCase()))
   ) {
     failures.push(`answer did not include any expected terms: ${spec.must_include_any.join(", ")}`);
+  }
+
+  if (
+    spec.must_not_include_any?.length &&
+    spec.must_not_include_any.some((needle) => normalizedAnswer.includes(needle.toLowerCase()))
+  ) {
+    failures.push(`answer included blocked terms: ${spec.must_not_include_any.join(", ")}`);
   }
 
   if (spec.refusal_expected) {
@@ -210,6 +269,18 @@ function evaluateResult(spec: EvalSpec, answer: string, sources: EvalSource[]): 
     if (!refused) {
       failures.push("expected a public-information refusal");
     }
+  }
+
+  if (spec.refusal_disallow_sources && sources.length > 0) {
+    failures.push(`expected no sources on refusal, got ${sources.length}`);
+  }
+
+  if (spec.require_stale_context && !sourceContext?.stale) {
+    failures.push("expected stale source-context metadata");
+  }
+
+  if (spec.require_limited_confidence && !sourceContext?.limitedConfidence) {
+    failures.push("expected limited-confidence source-context metadata");
   }
 
   return failures;
@@ -228,9 +299,9 @@ async function main() {
   console.log(`Running ${specs.length} evals against ${baseUrl}\n`);
 
   for (const spec of specs) {
-    const { answer, sources } = await streamChat(baseUrl, spec);
-    const failures = evaluateResult(spec, answer, sources);
-    results.push({ spec, answer, sources, failures });
+    const { answer, sources, sourceContext } = await streamChat(baseUrl, spec);
+    const failures = evaluateResult(spec, answer, sources, sourceContext);
+    results.push({ spec, answer, sources, sourceContext, failures });
 
     const status = failures.length === 0 ? "PASS" : "FAIL";
     console.log(`${status} ${spec.id}`);
