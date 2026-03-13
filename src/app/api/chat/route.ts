@@ -90,6 +90,7 @@ const TELEGRAM_QUERY_PATTERN = /\b(telegram|channel|post|posted|t\.me|kanal|post
 const RECENT_QUERY_PATTERN = /\b(latest|recent|recently|lately|current|currently|these days|right now|past month|last month|last week|this month)\b/iu;
 const PRIVATE_OR_INTERNAL_QUERY_PATTERN =
   /\b(private|personal|phone number|email address|home address|secret|confidential|internal decisions?|never announced|unannounced|private government|never shared publicly)\b/iu;
+const OUT_OF_SCOPE_REFUSAL_PATTERN = /\b(first president|birinchi prezidenti|islom karimov|karimov)\b/iu;
 const MONTH_LOOKUP: Record<string, number> = {
   january: 0,
   jan: 0,
@@ -325,9 +326,55 @@ function isPrivateOrInternalQuery(userMessage: string): boolean {
   return PRIVATE_OR_INTERNAL_QUERY_PATTERN.test(userMessage);
 }
 
+function isOutOfScopeRefusalQuery(userMessage: string): boolean {
+  return OUT_OF_SCOPE_REFUSAL_PATTERN.test(userMessage);
+}
+
 function isFutureDateScope(scope: QueryDateScope | null): boolean {
   if (!scope) return false;
   return scope.start.getTime() > Date.now() + 24 * 60 * 60 * 1000;
+}
+
+function buildStaticRefusalText(options: {
+  prefersUzbek: boolean;
+  isFutureDate: boolean;
+  isPrivateOrInternal: boolean;
+  isOutOfScope: boolean;
+}): string {
+  if (options.isFutureDate) {
+    return options.prefersUzbek
+      ? "Siz so'rayotgan sana hali kelajakda. Shu davrga oid ommaviy post yoki chiqish bo'lishi mumkin emas."
+      : "The date you are asking about is still in the future, so there cannot be any public posts or talks from that period yet.";
+  }
+
+  if (options.isPrivateOrInternal) {
+    return options.prefersUzbek
+      ? "Bu shaxsiy yoki ommaga e'lon qilinmagan ma'lumot. Men faqat ommaviy manbalarga tayangan holda javob bera olaman."
+      : "That is private or unannounced information. I can only answer from public material.";
+  }
+
+  if (options.isOutOfScope) {
+    return options.prefersUzbek
+      ? "Bu mavzu bo'yicha ommaviy fikr bildirganimni ko'rmayapman, shuning uchun taxmin qilmayman."
+      : "I have not spoken publicly about that topic, so I will not guess.";
+  }
+
+  return options.prefersUzbek
+    ? "Bu mavzu bo'yicha ommaviy ma'lumot topa olmadim."
+    : "I could not find public material on that topic.";
+}
+
+function createStaticAssistantResponse(text: string) {
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      const id = `static-${Date.now()}`;
+      writer.write({ type: "text-start", id });
+      writer.write({ type: "text-delta", id, delta: text });
+      writer.write({ type: "text-end", id });
+    },
+  });
+
+  return createUIMessageStreamResponse({ stream });
 }
 
 function readMetadataValue(chunk: Chunk, key: string): string | null {
@@ -571,8 +618,9 @@ function shouldAttachSources(
   if (chunks.length === 0) return false;
 
   if (isPrivateOrInternalQuery(userMessage)) return false;
+  if (isOutOfScopeRefusalQuery(userMessage)) return false;
   if (isFutureDateScope(options.dateScope)) return false;
-  if (options.sourceContextSummary?.limitedConfidence) return false;
+  if (options.sourceContextSummary?.limitedReasonCodes.includes("topic_gap")) return false;
 
   if (options.dateScope) return true;
 
@@ -844,7 +892,10 @@ function buildSourceContextSummary(
   if (uniqueSources.size < 2) {
     limitedReasonCodes.push("sparse");
   }
-  if (queryKeywords.length >= 3 && coveredKeywords.size < Math.min(2, queryKeywords.length)) {
+  if (
+    queryKeywords.length >= 3 &&
+    (coveredKeywords.size < 2 || coveredKeywords.size / queryKeywords.length < 0.75)
+  ) {
     limitedReasonCodes.push("weak_match");
   }
   if (queryTopics.length > 0 && !topicOverlap) {
@@ -999,13 +1050,30 @@ export async function POST(req: Request) {
   }
 
   const { messages } = parsed;
-  const userMessage = stripLanguageDirective(messages[messages.length - 1]?.content || "");
+  const latestRawUserMessage = messages[messages.length - 1]?.content || "";
+  const userMessage = stripLanguageDirective(latestRawUserMessage);
   const retrievalQuery = buildRetrievalQuery(messages) || userMessage;
   const userDateScope = parseQueryDateScope(userMessage);
+  const prefersUzbek = UZBEK_RESPONSE_PREFIX.test(latestRawUserMessage);
   const multiSourceRecencyQuestion =
     /\b(interview|interviews|talk|talks|article|articles|intervyu|intervyular|chiqish|chiqishlar|maqola|maqolalar)\b/iu
       .test(userMessage);
   const telegramFocusedQuestion = TELEGRAM_QUERY_PATTERN.test(userMessage) && !multiSourceRecencyQuestion;
+  const strictRefusal =
+    isFutureDateScope(userDateScope) ||
+    isPrivateOrInternalQuery(userMessage) ||
+    isOutOfScopeRefusalQuery(userMessage);
+
+  if (strictRefusal) {
+    return createStaticAssistantResponse(
+      buildStaticRefusalText({
+        prefersUzbek,
+        isFutureDate: isFutureDateScope(userDateScope),
+        isPrivateOrInternal: isPrivateOrInternalQuery(userMessage),
+        isOutOfScope: isOutOfScopeRefusalQuery(userMessage),
+      })
+    );
+  }
 
   // --- Fetch context: vector search (primary) + keyword fallback ---
   let chunks: Chunk[] | null = null;
