@@ -9,7 +9,7 @@ PERSONALITY & VOICE:
 - You prefer examples from initiatives, meetings, and public work over abstract theory.
 
 RULES:
-1. Answer ONLY based on the context provided below. The context contains public Telegram posts, interviews, talks, transcripts, and other public-source material.
+1. Answer ONLY based on the context provided below. The context contains public Telegram posts, interviews, talks, official pages, transcripts, and other public-source material.
 2. If the context does not contain the answer, say something like: "I haven't spoken publicly about that" or "That's not something I've shared publicly yet." NEVER invent facts, opinions, or private details.
 3. Keep responses conversational and grounded, usually 2-4 short paragraphs.
 4. Never use filler like "Certainly!", "Great question!", or "As an AI language model..."
@@ -23,7 +23,7 @@ RULES:
 12. For recency questions, use exact dates from the context. Do not say vague things like "recently" or "in the last couple of months" unless the retrieved dates actually support that phrasing. If the newest relevant item is old, say the specific month and year or exact date.
 13. If the retrieved public context is weak, old, sparse, or only loosely related, say that clearly and early. Keep the answer brief and avoid sweeping conclusions.
 
-CONTEXT FROM YOUR PUBLIC WRITINGS AND INTERVIEWS:
+CONTEXT FROM YOUR PUBLIC WRITINGS, INTERVIEWS, AND OFFICIAL PAGES:
 {retrieved_context}`;
 
 const EVERGREEN_SUGGESTED_QUESTIONS = {
@@ -186,77 +186,6 @@ const RECENT_SUGGESTED_QUESTIONS = {
   ],
 } as const;
 
-const FEATURED_HOME_QUESTIONS = {
-  en: [
-    [
-      "What recent Telegram post best shows what matters to you right now?",
-      "What issue keeps coming up most often in your latest meetings with young people?",
-      "What have your newest public updates been pushing hardest on?",
-      "What recent post best captures your current priorities for youth?",
-      "What have you been emphasizing most in your latest regional visits?",
-      "What topic keeps returning in your most recent Telegram posts?",
-    ],
-    [
-      "What advice would you give to a 17-year-old in Uzbekistan right now?",
-      "What is the most common mistake young founders make early?",
-      "How should a university student become useful before graduating?",
-      "How should young people move from ambition to real execution?",
-      "What should a young founder focus on before chasing funding?",
-      "How should students use support programs without wasting the opportunity?",
-    ],
-    [
-      "Why should opportunity not stay concentrated in Tashkent?",
-      "What matters most for talented youth growing up in the regions?",
-      "What should change first for students outside the big cities?",
-      "What kind of support actually helps regional youth compete globally?",
-      "What are you trying to change for young people outside Tashkent right now?",
-      "What does real opportunity look like for youth in the regions?",
-    ],
-    [
-      "Why do you keep emphasizing execution over talk?",
-      "What did Stanford GSB Executive change in how you think?",
-      "Why does chess matter beyond the board for young people?",
-      "What belief about youth do you think Uzbekistan still underestimates?",
-      "What does responsible leadership look like at a young age?",
-      "Why do books, language learning, and ambition show up together so often in your view?",
-    ],
-  ],
-  uz: [
-    [
-      "So'nggi postingizda bugungi ustuvorliklaringiz qaysi mavzuda eng aniq ko'rinadi?",
-      "Yoshlar bilan oxirgi uchrashuvlarda qaysi muammo eng ko'p takrorlandi?",
-      "Yaqindagi ommaviy chiqishlaringizda nimani eng ko'p oldinga suryapsiz?",
-      "So'nggi Telegram postlaringiz hozir siz uchun nima eng muhimligini qanday ko'rsatadi?",
-      "Hududlarga oxirgi safarlaringizda qaysi masalani ko'proq ta'kidladingiz?",
-      "Oxirgi Telegram postlaringizda qaysi mavzu qayta-qayta qaytyapti?",
-    ],
-    [
-      "Bugun 17 yoshli yigit-qizga eng birinchi qanday maslahat berardingiz?",
-      "Yosh founderlar yo'lning boshida eng ko'p nimada xato qiladi?",
-      "Talaba diplom olmasdan oldin o'zini qanday foydali qila oladi?",
-      "Yoshlar ambitsiyani qanday qilib amaliy natijaga aylantirishi kerak?",
-      "Yosh founder investor izlashdan oldin nimani to'g'rilab olishi kerak?",
-      "Talabalar imkoniyat va dasturlardan vaqtni boy bermasdan qanday foydalanishi kerak?",
-    ],
-    [
-      "Nega imkoniyatlar faqat Toshkentda to'planib qolmasligi kerak?",
-      "Hududdagi iqtidorli yoshlar uchun eng katta ehtiyoj nima deb o'ylaysiz?",
-      "Katta shaharlardan tashqaridagi talabalar uchun birinchi o'zgarish nima bo'lishi kerak?",
-      "Hududdagi yoshlar global darajada raqobat qilishi uchun nima eng muhim?",
-      "Hozir Toshkentdan tashqaridagi yoshlar hayotida nimani tezroq o'zgartirmoqchisiz?",
-      "Siz uchun hududlardagi yoshlar uchun haqiqiy imkoniyat nimaga o'xshaydi?",
-    ],
-    [
-      "Nega siz gapdan ko'ra ijroni ko'proq ta'kidlaysiz?",
-      "Stanford GSB Executive tajribasi qarashlaringizni nimada o'zgartirdi?",
-      "Shaxmat yoshlar uchun doskadan tashqarida nimani o'rgatadi?",
-      "Sizningcha, O'zbekistonda yoshlar haqida eng ko'p kam baholanadigan narsa nima?",
-      "Yosh odamdagi mas'uliyatli yetakchilik siz uchun qanday ko'rinadi?",
-      "Nega sizningcha kitob, til va ambitsiya bir-biridan ajralmaydi?",
-    ],
-  ],
-} as const;
-
 export const SUGGESTED_QUESTIONS = {
   en: [...RECENT_SUGGESTED_QUESTIONS.en, ...EVERGREEN_SUGGESTED_QUESTIONS.en],
   uz: [...RECENT_SUGGESTED_QUESTIONS.uz, ...EVERGREEN_SUGGESTED_QUESTIONS.uz],
@@ -274,6 +203,8 @@ export const UI_TEXT = {
       "An AI conversation with Alisher Sadullaev's public voice across youth, education, entrepreneurship, regional development, and chess.",
     heroSupport:
       "Best when you ask about a recent public update, a concrete initiative, or a bigger belief he has repeated across interviews and talks.",
+    heroPromptIntro: "Start with one of these threads",
+    heroSignals: ["Recent updates", "Deeper questions", "Unexpected angles"],
     poweredBy: "Gemini-powered · Grounded in Telegram posts, interviews, and public talks",
     newChat: "New chat",
     placeholder: "Ask Alisher anything...",
@@ -325,6 +256,8 @@ export const UI_TEXT = {
       "Alisher Sadullaevning yoshlarga oid qarashlari, tashabbuslari va ommaviy chiqishlariga tayangan AI suhbatdosh.",
     heroSupport:
       "Eng yaxshi natija uchun yaqindagi ommaviy yangilanish, aniq dastur yoki u ko'p takrorlaydigan katta g'oya haqida so'rang.",
+    heroPromptIntro: "Suhbatni shu yo'nalishlardan boshlang",
+    heroSignals: ["So'nggi mavzular", "Chuqur savollar", "Kutilmagan burchaklar"],
     poweredBy:
       "Gemini asosida · Telegram postlari, intervyular va ommaviy chiqishlarga tayangan",
     newChat: "Yangi suhbat",
@@ -379,48 +312,14 @@ function shuffleQuestions(questions: string[]): string[] {
   return next;
 }
 
-type DeckState = { deck: string[]; cursor: number };
-
-function createDeckState(): DeckState {
-  return { deck: [], cursor: 0 };
-}
-
 const questionDecks: Record<Language, { deck: string[]; cursor: number }> = {
   en: { deck: [], cursor: 0 },
   uz: { deck: [], cursor: 0 },
 };
 
-const featuredQuestionDecks: Record<Language, DeckState[]> = {
-  en: FEATURED_HOME_QUESTIONS.en.map(() => createDeckState()),
-  uz: FEATURED_HOME_QUESTIONS.uz.map(() => createDeckState()),
-};
-
-function takeNextQuestion(pool: readonly string[], state: DeckState): string | null {
-  if (pool.length === 0) return null;
-
-  if (state.cursor >= state.deck.length) {
-    state.deck = shuffleQuestions([...pool]);
-    state.cursor = 0;
-  }
-
-  const question = state.deck[state.cursor];
-  state.cursor += 1;
-  return question ?? null;
-}
-
 export function getRandomQuestions(lang: Language, count = 4): string[] {
   const pool = SUGGESTED_QUESTIONS[lang];
   if (pool.length === 0 || count <= 0) return [];
-
-  if (count === 4) {
-    const featured = FEATURED_HOME_QUESTIONS[lang]
-      .map((group, index) => takeNextQuestion(group, featuredQuestionDecks[lang][index]))
-      .filter((question): question is string => Boolean(question));
-
-    if (featured.length === count) {
-      return featured;
-    }
-  }
 
   const state = questionDecks[lang];
   const picked: string[] = [];

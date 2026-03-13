@@ -378,19 +378,19 @@ function buildStaticRefusalText(options: {
 }): string {
   if (options.isFutureDate) {
     return options.prefersUzbek
-      ? "Bu sana hali kelajakda. Shu davr haqida ochiq gapirganim bo'lishi mumkin emas."
-      : "I haven't shared anything publicly from that future date, because it hasn't happened yet.";
+      ? "Siz so'rayotgan sana hali kelajakda. Shu davrga oid ommaviy post yoki chiqish bo'lishi mumkin emas."
+      : "The date you are asking about is still in the future, so there cannot be any public posts or talks from that period yet.";
   }
 
   if (options.isPrivateOrInternal) {
     return options.prefersUzbek
-      ? "Bu shaxsiy yoki ommaga e'lon qilinmagan ma'lumot. Buni omma bilan ulashmaganman."
-      : "That is not something I've shared publicly, and I can't help with private or unannounced information.";
+      ? "Bu shaxsiy yoki ommaga e'lon qilinmagan ma'lumot. Men faqat ommaviy manbalarga tayangan holda javob bera olaman."
+      : "That is private or unannounced information. I can only answer from public material.";
   }
 
   if (options.isOutOfScope) {
     return options.prefersUzbek
-      ? "Bu mavzu bo'yicha ochiq fikr bildirganim yo'q, shuning uchun taxmin qilmayman."
+      ? "Bu mavzu bo'yicha ommaviy fikr bildirganimni ko'rmayapman, shuning uchun taxmin qilmayman."
       : "I have not spoken publicly about that topic, so I will not guess.";
   }
 
@@ -490,7 +490,7 @@ function buildQueryIntent(
     /\bsenator|stanford|federation|agentligi|yoshlar ishlari\b/iu.test(normalized);
   const prefersLongForm =
     !prefersTelegram &&
-    /\b(why|how|explain|mindset|principle|principles|approach|strategy|belief|beliefs|lesson|lessons|advice|mistake|mistakes|framework|frameworks|personally|meaning)\b/iu
+    /\b(why|how|explain|mindset|principle|principles|approach|strategy|belief|beliefs|lesson|lessons|advice|mistake|mistakes|framework|frameworks)\b/iu
       .test(normalized);
   const prefersConcreteUpdates =
     prefersTelegram ||
@@ -522,6 +522,7 @@ function getChunkSourceFamily(chunk: Chunk): SourceFamily {
       "youtube_transcript",
       "interview",
       "article",
+      "official",
       "book",
       "linkedin",
       "linkedin_post",
@@ -793,6 +794,7 @@ async function fetchSupplementalPublicSourceChunks(
   const sourceTypes = [
     "interview",
     "article",
+    "official",
     "youtube",
     "youtube_transcript",
     "linkedin",
@@ -982,6 +984,11 @@ function getSourceTitle(chunk: Chunk): string {
     return explicitTitle;
   }
 
+  const contentTitle = chunk.content.match(/^Title:\s*(.+)$/m)?.[1]?.trim();
+  if (contentTitle) {
+    return contentTitle;
+  }
+
   return SOURCE_LABELS[chunk.source_type] || chunk.source_type;
 }
 
@@ -1032,6 +1039,7 @@ const SOURCE_LABELS: Record<string, string> = {
   youtube_transcript: "YouTube",
   interview: "Interview",
   article: "Article",
+  official: "Official source",
   bio: "Bio",
   telegram: "Telegram archive",
   telegram_post: "Telegram post",
@@ -1207,6 +1215,7 @@ export async function POST(req: Request) {
           "bio",
           "interview",
           "article",
+          "official",
           "youtube",
           "youtube_transcript",
           "linkedin",
