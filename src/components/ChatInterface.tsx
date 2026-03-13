@@ -1158,7 +1158,7 @@ export function ChatInterface() {
           {/* Hero */}
           {messages.length === 0 && (
             <div className="hero-glow flex flex-col items-center gap-6 pt-6 sm:gap-10 sm:pt-12">
-              <AlisherAvatar size="lg" />
+              <AlisherAvatar size="lg" lang={lang} />
               <SuggestedQuestions key={lang} onSelect={handleSuggestedQuestion} lang={lang} />
               <p className="text-xs" style={{ color: "var(--muted)", maxWidth: "36rem", textAlign: "center" }}>
                 {t.poweredBy}
