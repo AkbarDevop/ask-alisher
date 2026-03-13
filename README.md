@@ -4,7 +4,7 @@
 
 # Ask Alisher
 
-**Chat with an AI clone of Alisher Sadullaev** — grounded in his public Telegram posts, interviews, talks, and other public-source material.
+**Chat with an AI clone of Alisher Sadullaev** — grounded in his public Telegram posts, interviews, talks, official pages, and other public-source material.
 
 </div>
 
@@ -18,6 +18,7 @@ The bot is designed to answer questions in Alisher's public voice using only ret
 
 - the public `@alisher_sadullaev` Telegram archive
 - public YouTube interviews and talks
+- official public-source briefs from `gov.uz` and other government / agency pages
 - short public bio/profile material
 
 It is best suited for questions about youth development, education, entrepreneurship, volunteering, regional initiatives, reading culture, and chess.
@@ -25,13 +26,13 @@ It is best suited for questions about youth development, education, entrepreneur
 ## How it works
 
 ```text
-User question -> Gemini embedding -> pgvector similarity search -> date-aware Telegram retrieval -> Gemini 2.5 Flash -> streamed response with source cards
+User question -> Gemini embedding -> pgvector similarity search -> date-aware + source-aware retrieval -> Gemini 2.5 Flash -> streamed response with source cards
 ```
 
-1. Public-source documents are chunked and embedded into `documents_alisher` in Supabase.
-2. The API route retrieves semantically similar chunks, with extra Telegram handling for recent/date-specific prompts.
+1. Public-source documents are chunked and embedded into `documents_alisher` in Supabase with richer metadata like `source_domain`, `source_authority`, `domain_tags`, `published_at`, and `is_official`.
+2. The API route retrieves semantically similar chunks, with extra Telegram handling for recent/date-specific prompts and extra boosting for official/public sources when the question is about programs, policy, regions, or institutional roles.
 3. Gemini 2.5 Flash generates the answer using only retrieved context.
-4. The client streams the answer and renders source cards with snippets and topic labels separately.
+4. The client streams the answer and renders source cards with snippets, topic labels, and more human source titles separately.
 5. Low-signal Telegram export artifacts are filtered out during ingestion so the app prefers substantive posts over pinned-photo or pinned-voice placeholders.
 6. Durable rate limiting now runs through Supabase RPC instead of per-instance memory.
 
@@ -78,6 +79,8 @@ Important:
 - It can share the same Supabase project as `ask-akmal` without overwriting `documents`.
 - `scripts/chunk-and-embed.ts` rebuilds only the `documents_alisher` corpus.
 - `scripts/backfill-topic-metadata.ts` can enrich the existing corpus with `topics`, `is_first_person`, and `is_low_signal` metadata without rebuilding embeddings.
+- The current corpus now includes Telegram, YouTube, bio material, and versioned official public-source briefs under `data/official/`.
+- Official/public chunks now carry richer metadata like `source_domain`, `source_authority`, `domain_tags`, `published_at`, and `is_official` so retrieval can prefer them more intelligently.
 - GTM is wired through `NEXT_PUBLIC_GTM_ID`, defaulting to `GTM-N3M3DLLG` for the Alisher site.
 - GA4 is wired through `NEXT_PUBLIC_GA_MEASUREMENT_IDS`, defaulting to `G-BWTQB4SFP4,G-2XNF6BSJG8`.
 - Soft abuse protection is wired for Cloudflare Turnstile. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to enable it on the web chat route.
@@ -114,6 +117,8 @@ Download the curated public YouTube manifest:
 ```bash
 python3 scripts/download-remaining-yt.py
 ```
+
+The repo also includes curated official public-source briefs under `data/official/`. They are included automatically in the full rebuild command below.
 
 Ingest only the updated YouTube transcripts without rebuilding the whole corpus:
 
@@ -184,6 +189,8 @@ Open `http://localhost:3000`.
 - A small public bio seed file is included in `data/`.
 - The YouTube downloader now reads from `scripts/alisher-video-manifest.json`.
 - The YouTube manifest now includes extra long-form youth policy, girls' education, collaboration, and interview coverage.
+- The repo now includes versioned official public-source briefs in `data/official/`, including Youth Affairs Agency and other `gov.uz` material.
+- Retrieval now uses richer domain-aware metadata so official/public sources can outrank Telegram when the question is really about policy, programs, regional work, or institutional context.
 - Source cards now show a supporting snippet plus inferred topic tags.
 - Telegram ingestion now skips low-signal export artifacts, and `npm run prune:low-signal` removes any already stored leftovers.
 - Durable rate limiting uses the `consume_ask_alisher_rate_limit()` Supabase RPC.
@@ -218,6 +225,7 @@ evals/
   alisher-core.json
 data/
   bio_alisher_sadullaev.txt
+  official/
   telegram_posts/
   youtube/
 supabase/
