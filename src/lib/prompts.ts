@@ -196,7 +196,8 @@ export type Language = "en" | "uz";
 export const UI_TEXT = {
   en: {
     heroTitle: "Ask Alisher",
-    heroSubtitle: "Senator · Youth leader · Chess advocate · Stanford GSB Executive",
+    heroSubtitle:
+      "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive",
     heroEyebrow: "Public posts, talks, and interviews only",
     heroDescription:
       "An AI conversation with Alisher Sadullaev's public voice across youth, education, entrepreneurship, regional development, and chess.",
@@ -248,7 +249,8 @@ export const UI_TEXT = {
   },
   uz: {
     heroTitle: "Alisherga savol bering",
-    heroSubtitle: "Senator · Yoshlar yetakchisi · Shaxmat targ'ibotchisi · Stanford GSB Executive",
+    heroSubtitle:
+      "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive",
     heroEyebrow: "Faqat ommaviy postlar, intervyular va chiqishlar asosida",
     heroDescription:
       "Alisher Sadullaevning yoshlarga oid qarashlari, tashabbuslari va ommaviy chiqishlariga tayangan AI suhbatdosh.",
