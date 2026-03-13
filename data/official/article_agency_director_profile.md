@@ -4,6 +4,9 @@ Date: 2026-03-13
 Language: en
 Organization: Youth Affairs Agency of the Republic of Uzbekistan
 Source: gov.uz
+SourceAuthority: official
+SourceDomain: gov.uz
+DomainTags: official, government, youth_affairs_agency, biography, leadership
 Format: official profile brief
 
 Official profile brief based on the Youth Affairs Agency administration page.

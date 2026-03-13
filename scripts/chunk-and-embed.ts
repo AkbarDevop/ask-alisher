@@ -132,6 +132,82 @@ function detectLanguage(content: string): string | null {
   return null;
 }
 
+function parseMetadataList(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function getSourceDomain(sourceUrl: string | null): string | null {
+  if (!sourceUrl) return null;
+
+  try {
+    return new URL(sourceUrl).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function inferSourceAuthority(
+  sourceType: string,
+  sourceDomain: string | null,
+  structuredMetadata: Record<string, string>
+): string {
+  const explicit = structuredMetadata.SourceAuthority || structuredMetadata.source_authority;
+  if (explicit) return explicit.toLowerCase();
+
+  if (sourceDomain === "gov.uz") return "official";
+  if (sourceDomain === "t.me") return "social";
+  if (sourceDomain?.includes("youtube")) return "platform";
+  if (sourceDomain?.includes("linkedin")) return "professional_network";
+  if (["bio", "presentation"].includes(sourceType)) return "reference";
+
+  return "public_web";
+}
+
+function inferDomainTags(
+  sourceType: string,
+  sourceDomain: string | null,
+  structuredMetadata: Record<string, string>,
+  topics: string[]
+): string[] {
+  const explicit = [
+    ...parseMetadataList(structuredMetadata.DomainTags),
+    ...parseMetadataList(structuredMetadata.domain_tags),
+  ];
+
+  const tags = new Set<string>(explicit);
+  const sourceAuthority = inferSourceAuthority(sourceType, sourceDomain, structuredMetadata);
+  const organization = (structuredMetadata.Organization || "").toLowerCase();
+
+  if (sourceAuthority === "official") {
+    tags.add("official");
+    tags.add("government");
+  }
+  if (organization.includes("youth affairs agency")) {
+    tags.add("youth_affairs_agency");
+  }
+  if (sourceDomain === "t.me") {
+    tags.add("telegram_channel");
+  }
+  if (sourceDomain?.includes("youtube")) {
+    tags.add("video_platform");
+  }
+
+  if (topics.includes("regional_visits")) tags.add("regions");
+  if (topics.includes("entrepreneurship")) tags.add("startup_support");
+  if (topics.includes("international")) tags.add("international");
+  if (topics.includes("women_empowerment")) tags.add("women_empowerment");
+  if (topics.includes("chess")) tags.add("chess_development");
+  if (topics.includes("policy") || topics.includes("education") || topics.includes("youth")) {
+    tags.add("programs");
+  }
+
+  return [...tags];
+}
+
 function buildChunkContent(
   sourceType: string,
   chunk: string,
@@ -225,6 +301,8 @@ async function main() {
         : null) ||
       parsed.language;
     const sourceUrl = extractUrl(rawContent);
+    const sourceDomain = getSourceDomain(sourceUrl);
+    const sourceAuthority = inferSourceAuthority(sourceType, sourceDomain, structured.metadata);
 
     console.log(
       `Processing: ${file} (type: ${sourceType}, lang: ${language})`
@@ -298,6 +376,13 @@ async function main() {
       }
 
       const rows = batch.map((chunk, j) => {
+        const topics = inferTopics(chunk.chunkContent);
+        const publishedAt =
+          structured.metadata.published_at ||
+          structured.metadata.Date ||
+          structured.metadata.date ||
+          null;
+
         return {
           content: chunk.chunkContent,
           embedding: embeddings ? JSON.stringify(embeddings[j]) : null,
@@ -307,9 +392,17 @@ async function main() {
           metadata: {
             file,
             chunk_index: chunk.chunkIndex,
-            topics: inferTopics(chunk.chunkContent),
+            topics,
+            domain_tags: inferDomainTags(sourceType, sourceDomain, structured.metadata, topics),
             is_first_person: detectFirstPersonVoice(chunk.chunkContent),
             is_low_signal: false,
+            source_domain: sourceDomain,
+            source_authority: sourceAuthority,
+            published_at: publishedAt,
+            is_official:
+              sourceAuthority === "official" ||
+              structured.metadata.is_official === "true" ||
+              structured.metadata.IsOfficial === "true",
             ...structured.metadata,
           },
         };

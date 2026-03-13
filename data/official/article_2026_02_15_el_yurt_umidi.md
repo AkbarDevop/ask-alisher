@@ -4,6 +4,9 @@ Date: 2026-02-15 20:00:00
 Language: en
 Organization: Youth Affairs Agency of the Republic of Uzbekistan
 Source: gov.uz
+SourceAuthority: official
+SourceDomain: gov.uz
+DomainTags: official, government, youth_affairs_agency, international, programs
 Format: official page brief
 
 Official page brief based on a February 15, 2026 Youth Affairs Agency news item.

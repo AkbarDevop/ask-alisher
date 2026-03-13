@@ -219,6 +219,7 @@ type QueryIntent = {
   prefersBiography: boolean;
   prefersConcreteUpdates: boolean;
   prefersBalancedSources: boolean;
+  prefersOfficialContext: boolean;
 };
 
 type SourceFamily = "telegram" | "longform" | "profile" | "other";
@@ -419,6 +420,20 @@ function readMetadataValue(chunk: Chunk, key: string): string | null {
   return null;
 }
 
+function readMetadataList(chunk: Chunk, key: string): string[] {
+  const value = chunk.metadata?.[key];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function getChunkPublishedAt(chunk: Chunk): string | null {
   const fromMetadata = readMetadataValue(chunk, "published_at");
   if (fromMetadata) return fromMetadata;
@@ -454,6 +469,71 @@ function getChunkTopics(chunk: Chunk): string[] {
   return inferTopics(chunk.content);
 }
 
+function getChunkDomainTags(chunk: Chunk): string[] {
+  const metadataTags = [
+    ...readMetadataList(chunk, "domain_tags"),
+    ...readMetadataList(chunk, "DomainTags"),
+  ];
+
+  if (metadataTags.length > 0) {
+    return [...new Set(metadataTags.map((tag) => tag.toLowerCase()))];
+  }
+
+  const inferred: string[] = [];
+  const sourceDomain = getChunkSourceDomain(chunk);
+  if (sourceDomain === "gov.uz") {
+    inferred.push("official", "government", "youth_affairs_agency");
+  }
+  if (sourceDomain === "t.me") {
+    inferred.push("social", "telegram_channel");
+  }
+  if (sourceDomain?.includes("youtube")) {
+    inferred.push("video_platform");
+  }
+
+  return [...new Set(inferred)];
+}
+
+function getChunkSourceDomain(chunk: Chunk): string | null {
+  const explicit =
+    readMetadataValue(chunk, "source_domain") ||
+    readMetadataValue(chunk, "SourceDomain");
+  if (explicit) return explicit.toLowerCase();
+
+  if (!chunk.source_url) return null;
+
+  try {
+    return new URL(chunk.source_url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function getChunkSourceAuthority(chunk: Chunk): string | null {
+  const explicit =
+    readMetadataValue(chunk, "source_authority") ||
+    readMetadataValue(chunk, "SourceAuthority");
+  if (explicit) return explicit.toLowerCase();
+
+  if (chunk.metadata?.is_official === true) return "official";
+
+  const domain = getChunkSourceDomain(chunk);
+  if (domain === "gov.uz") return "official";
+  if (domain === "t.me") return "social";
+  if (domain?.includes("youtube")) return "platform";
+
+  return null;
+}
+
+function chunkIsOfficialSource(chunk: Chunk): boolean {
+  if (chunk.metadata?.is_official === true) return true;
+
+  const authority = getChunkSourceAuthority(chunk);
+  if (authority === "official") return true;
+
+  return getChunkDomainTags(chunk).includes("official");
+}
+
 function chunkIsFirstPerson(chunk: Chunk): boolean {
   const value = chunk.metadata?.is_first_person;
   if (typeof value === "boolean") return value;
@@ -479,6 +559,7 @@ function buildQueryIntent(
   options: { dateScope: QueryDateScope | null; telegramFocused: boolean }
 ): QueryIntent {
   const normalized = userMessage.toLowerCase();
+  const queryTopics = inferTopics(userMessage);
   const prefersRecent = Boolean(options.dateScope) || RECENT_QUERY_PATTERN.test(normalized);
   const mentionsBroaderPublicSources =
     /\b(interview|interviews|talk|talks|article|articles|intervyu|intervyular|chiqish|chiqishlar|maqola|maqolalar)\b/iu
@@ -503,6 +584,17 @@ function buildQueryIntent(
     (/\b(imkoniyat|opportunity|opportunities|support|qo'llab|dastur|program|initiative|grant|loan|education|ta'lim|youth|yoshlar|startup|tadbirkorlik|career|bandlik|employment)\b/iu
       .test(normalized) ||
       !prefersConcreteUpdates);
+  const prefersOfficialContext =
+    !prefersTelegram &&
+    (
+      /\b(agentligi|agency|policy|government|davlat|senator|program|programs|initiative|initiatives|grant|loan|opportunity|opportunities|support|mahalla|region|regional|jizzakh|foreign|abroad|international|work and travel|scholarship|el-yurt|girls|women|qizlar|ayollar)\b/iu
+        .test(normalized) ||
+      queryTopics.some((topic) =>
+        ["policy", "regional_visits", "international", "women_empowerment", "entrepreneurship", "education"].includes(
+          topic
+        )
+      )
+    );
 
   return {
     prefersTelegram,
@@ -511,7 +603,48 @@ function buildQueryIntent(
     prefersBiography,
     prefersConcreteUpdates,
     prefersBalancedSources,
+    prefersOfficialContext,
   };
+}
+
+function inferQueryDomainTags(userMessage: string): string[] {
+  const normalized = userMessage.toLowerCase();
+  const tags = new Set<string>();
+
+  if (/\b(agentligi|agency|government|gov|davlat|policy|senator|official)\b/iu.test(normalized)) {
+    tags.add("official");
+    tags.add("government");
+  }
+
+  if (/\b(youth affairs|yoshlar ishlari|youth affairs agency|yoshlar agentligi)\b/iu.test(normalized)) {
+    tags.add("youth_affairs_agency");
+  }
+
+  if (/\b(program|programs|initiative|initiatives|grant|loan|opportunity|opportunities|support|dastur|imkoniyat|qo'llab)\b/iu.test(normalized)) {
+    tags.add("programs");
+  }
+
+  if (/\b(region|regional|regions|mahalla|mahallalarda|hudud|hududlar|viloyat|jizzakh|jizzax|fergana|andijan|namangan)\b/iu.test(normalized)) {
+    tags.add("regions");
+  }
+
+  if (/\b(startup|startups|founder|founders|venture|investor|tadbirkor|tadbirkorlik)\b/iu.test(normalized)) {
+    tags.add("startup_support");
+  }
+
+  if (/\b(foreign|abroad|international|germany|work and travel|el-yurt|scholarship|global)\b/iu.test(normalized)) {
+    tags.add("international");
+  }
+
+  if (/\b(girls|girl|women|woman|qizlar|qiz|ayollar|ayol)\b/iu.test(normalized)) {
+    tags.add("women_empowerment");
+  }
+
+  if (/\b(chess|shaxmat|uzchess)\b/iu.test(normalized)) {
+    tags.add("chess_development");
+  }
+
+  return [...tags];
 }
 
 function getChunkSourceFamily(chunk: Chunk): SourceFamily {
@@ -540,7 +673,8 @@ function scoreChunkForSelection(
   keywords: string[],
   intent: QueryIntent,
   dateScope: QueryDateScope | null,
-  queryTopics: string[]
+  queryTopics: string[],
+  queryDomainTags: string[]
 ): number {
   const sourceFamily = getChunkSourceFamily(chunk);
   const keywordScore = scoreChunkAgainstKeywords(chunk, keywords) * 4;
@@ -550,6 +684,7 @@ function scoreChunkForSelection(
       : Math.max(32 - index, 0);
   const publishedAtMs = getChunkPublishedAtMs(chunk);
   const chunkTopics = getChunkTopics(chunk);
+  const chunkDomainTags = getChunkDomainTags(chunk);
   const now = Date.now();
   let score = similarityScore + keywordScore;
 
@@ -558,6 +693,10 @@ function scoreChunkForSelection(
   if (queryTopics.length > 0) {
     const overlapCount = queryTopics.filter((topic) => chunkTopics.includes(topic)).length;
     score += overlapCount * 10;
+  }
+  if (queryDomainTags.length > 0) {
+    const overlapCount = queryDomainTags.filter((tag) => chunkDomainTags.includes(tag)).length;
+    score += overlapCount * 9;
   }
 
   if (sourceFamily === "telegram") {
@@ -582,6 +721,7 @@ function scoreChunkForSelection(
     if (intent.prefersBiography) score += 6;
     if (!intent.prefersTelegram) score += 4;
     if (intent.prefersBalancedSources) score += 10;
+    if (intent.prefersOfficialContext && chunkIsOfficialSource(chunk)) score += 18;
     score += Math.min(6, chunk.content.length / 600);
   }
 
@@ -589,6 +729,19 @@ function scoreChunkForSelection(
     if (intent.prefersBiography) score += 20;
     if (intent.prefersConcreteUpdates) score -= 8;
     if (!intent.prefersBiography && !intent.prefersLongForm) score -= 4;
+  }
+
+  if (chunkIsOfficialSource(chunk)) {
+    score += 5;
+
+    if (intent.prefersOfficialContext) score += 10;
+    if (intent.prefersBiography) score += 8;
+    if (intent.prefersTelegram) score -= 8;
+
+    if (publishedAtMs > 0) {
+      const ageDays = Math.max(0, (now - publishedAtMs) / (24 * 60 * 60 * 1000));
+      score += Math.max(0, 10 - ageDays * 0.08);
+    }
   }
 
   return score;
@@ -604,12 +757,21 @@ function rerankChunksForQuery(
   const keywords = extractKeywords(userMessage);
   const intent = buildQueryIntent(userMessage, options);
   const queryTopics = inferTopics(userMessage);
+  const queryDomainTags = inferQueryDomainTags(userMessage);
 
   return chunks
     .map((chunk, index) => ({
       chunk,
       index,
-      score: scoreChunkForSelection(chunk, index, keywords, intent, options.dateScope, queryTopics),
+      score: scoreChunkForSelection(
+        chunk,
+        index,
+        keywords,
+        intent,
+        options.dateScope,
+        queryTopics,
+        queryDomainTags
+      ),
       publishedAtMs: getChunkPublishedAtMs(chunk),
     }))
     .sort((left, right) => {
@@ -635,6 +797,11 @@ function chunkMentionsKeyword(chunk: Chunk, keyword: string): boolean {
     chunk.content,
     chunk.source_url,
     readMetadataValue(chunk, "title") || "",
+    readMetadataValue(chunk, "Title") || "",
+    readMetadataValue(chunk, "Organization") || "",
+    readMetadataValue(chunk, "Source") || "",
+    getChunkSourceDomain(chunk) || "",
+    getChunkDomainTags(chunk).join(" "),
   ]
     .join("\n")
     .toLowerCase();
@@ -819,7 +986,12 @@ async function fetchSupplementalPublicSourceChunks(
   const rows = (data as Chunk[] | null) ?? [];
   if (rows.length === 0) return [];
 
-  return preferHighSignalChunks(rows);
+  return preferHighSignalChunks(rows).sort((left, right) => {
+    const leftOfficial = chunkIsOfficialSource(left) ? 1 : 0;
+    const rightOfficial = chunkIsOfficialSource(right) ? 1 : 0;
+    if (rightOfficial !== leftOfficial) return rightOfficial - leftOfficial;
+    return getChunkPublishedAtMs(right) - getChunkPublishedAtMs(left);
+  });
 }
 
 function selectContextChunks(
@@ -1339,6 +1511,7 @@ export async function POST(req: Request) {
       }
 
       const sourceKey = c.source_url || c.source_type;
+      const displayType = chunkIsOfficialSource(c) ? "official" : c.source_type;
       if (!seen.has(sourceKey)) {
         seen.add(sourceKey);
         let url = c.source_url || "";
@@ -1346,8 +1519,8 @@ export async function POST(req: Request) {
           url = "https://t.me/alisher_sadullaev";
         }
         uniqueSources.push({
-          id: `${c.source_type}:${sourceKey}`,
-          type: c.source_type,
+          id: `${displayType}:${sourceKey}`,
+          type: displayType,
           url,
           title: getSourceTitle(c),
           snippet: buildSourceSnippet(c, userMessage),
