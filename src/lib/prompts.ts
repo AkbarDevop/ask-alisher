@@ -203,8 +203,6 @@ export const UI_TEXT = {
       "An AI conversation with Alisher Sadullaev's public voice across youth, education, entrepreneurship, regional development, and chess.",
     heroSupport:
       "Best when you ask about a recent public update, a concrete initiative, or a bigger belief he has repeated across interviews and talks.",
-    heroPromptIntro: "Start with one of these threads",
-    heroSignals: ["Recent updates", "Deeper questions", "Unexpected angles"],
     poweredBy: "Gemini-powered · Grounded in Telegram posts, interviews, and public talks",
     newChat: "New chat",
     placeholder: "Ask Alisher anything...",
@@ -256,8 +254,6 @@ export const UI_TEXT = {
       "Alisher Sadullaevning yoshlarga oid qarashlari, tashabbuslari va ommaviy chiqishlariga tayangan AI suhbatdosh.",
     heroSupport:
       "Eng yaxshi natija uchun yaqindagi ommaviy yangilanish, aniq dastur yoki u ko'p takrorlaydigan katta g'oya haqida so'rang.",
-    heroPromptIntro: "Suhbatni shu yo'nalishlardan boshlang",
-    heroSignals: ["So'nggi mavzular", "Chuqur savollar", "Kutilmagan burchaklar"],
     poweredBy:
       "Gemini asosida · Telegram postlari, intervyular va ommaviy chiqishlarga tayangan",
     newChat: "Yangi suhbat",
