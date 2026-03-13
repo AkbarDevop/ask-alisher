@@ -1,0 +1,92 @@
+[
+  {
+    "id": "vEGC64aYTaM",
+    "title": "Alisher Sa'dullayev: Alishmas qadriyatlarim",
+    "channel": "102 tv",
+    "duration": "1:53:35",
+    "status": "blocked_no_captions",
+    "reason": "Highest-value long-form interview found, but YouTube exposes no usable subtitles or automatic captions.",
+    "next_step": "Manual transcription or manual brief would be worthwhile."
+  },
+  {
+    "id": "1SWI95PaQZw",
+    "title": "Alisher Sa'dullayev bilan intervyu: Yangi agentlik bilan yoshlar muammolari yechiladimi?",
+    "channel": "KunUZ",
+    "duration": "27:38",
+    "status": "rejected_garbled_original_captions",
+    "reason": "yt-dlp exposes tr-orig auto captions, but the transcript is heavily corrupted and unusable for RAG.",
+    "next_step": "Do not ingest unless a better transcript source appears."
+  },
+  {
+    "id": "7WLP51WLUXk",
+    "title": "Freelance istiqboli",
+    "channel": "MFaktorUz",
+    "duration": "1:38:14",
+    "status": "rejected_garbled_original_captions",
+    "reason": "Long-form panel looked promising, but tr-orig captions are badly garbled and low-signal.",
+    "next_step": "Skip for now."
+  },
+  {
+    "id": "UnpIm2pfeWQ",
+    "title": "Uzbek senator on reforms and challenges",
+    "channel": "Amerika Ovozi",
+    "duration": "11:34",
+    "status": "rejected_garbled_original_captions",
+    "reason": "es-orig captions are present, but the transcript is mostly noise and music markers.",
+    "next_step": "Skip for now."
+  },
+  {
+    "id": "oNzUoYhr7Ls",
+    "title": "FIDE Bosh Assambleyasi yig‘ilishi 2022. 2-kun. Chennai, India",
+    "channel": "Alisher Sadullayev",
+    "duration": "1:18:50",
+    "status": "rejected_event_noise",
+    "reason": "Captions are available, but the transcript is dominated by other speakers and assembly proceedings.",
+    "next_step": "Only useful if manually clipped down to Alisher's segment."
+  },
+  {
+    "id": "zZbk4UQCDd4",
+    "title": "O'zbekistonni ENG YOSH siyosatchisi bilan New Yorkda suxbat",
+    "channel": "MrOtabekTV",
+    "duration": "6:33",
+    "status": "blocked_no_captions",
+    "reason": "Potentially good conversational clip, but subtitles are disabled.",
+    "next_step": "Skip unless captions are added later."
+  },
+  {
+    "id": "0kusDjfefyM",
+    "title": "Startup Mix PR Corner discussion #3",
+    "channel": "Tech4Impact",
+    "duration": "9:23",
+    "status": "blocked_no_captions",
+    "reason": "Startup-oriented discussion is relevant, but no subtitles are exposed.",
+    "next_step": "Skip unless captions are added later."
+  },
+  {
+    "id": "13gVajOkRuU",
+    "title": "Prezident nazariga tushgan Alisher Sa'dullayev haqida batafsil",
+    "channel": "DEMOKRAT UZ",
+    "duration": "12:50",
+    "status": "blocked_no_captions",
+    "reason": "Biographical candidate, but no subtitles are exposed.",
+    "next_step": "Skip unless captions are added later."
+  },
+  {
+    "id": "Uo1BjqB0mIA",
+    "title": "23 Yoshli Alisher Sadullayev o'z fikrlari bilan",
+    "channel": "Smart labs",
+    "duration": "6:29",
+    "status": "blocked_no_captions",
+    "reason": "Early-career interview candidate, but no subtitles are exposed.",
+    "next_step": "Skip unless captions are added later."
+  },
+  {
+    "id": "JMteWhIrnqU",
+    "title": "Uzchess Cup 2024 superturniri",
+    "channel": "Alisher Sadullayev",
+    "duration": "5:42",
+    "status": "accepted_and_ingested",
+    "reason": "The transcript cleaned into a usable chess-focused first-person chunk and is now in documents_alisher.",
+    "next_step": "Keep in the canonical YouTube manifest."
+  }
+]
