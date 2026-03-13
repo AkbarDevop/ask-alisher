@@ -183,6 +183,18 @@ type QueryIntent = {
   prefersBalancedSources: boolean;
 };
 
+type SourceFamily = "telegram" | "longform" | "profile" | "other";
+
+type SourceContextSummary = {
+  latestPublishedAt?: string;
+  latestPublishedLabel?: string;
+  latestPublishedMs: number;
+  stale: boolean;
+  recencyRequested: boolean;
+  sourceFamilies: SourceFamily[];
+  hasMixedSources: boolean;
+};
+
 function startOfUtcDay(year: number, month: number, day: number): Date {
   return new Date(Date.UTC(year, month, day));
 }
@@ -407,7 +419,7 @@ function buildQueryIntent(
   };
 }
 
-function getChunkSourceFamily(chunk: Chunk): "telegram" | "longform" | "profile" | "other" {
+function getChunkSourceFamily(chunk: Chunk): SourceFamily {
   if (["telegram", "telegram_post"].includes(chunk.source_type)) return "telegram";
   if (
     [
@@ -616,7 +628,20 @@ async function fetchSupplementalTelegramChunks(
     return publishedAtMs >= effectiveScope.start.getTime() && publishedAtMs < effectiveScope.end.getTime();
   });
   const preferredRows = filtered.filter((chunk) => !chunkIsLowSignal(chunk));
-  const scopedRows = preferredRows.length >= 12 ? preferredRows : filtered;
+  const newestRows = [...rows]
+    .filter((chunk) => getChunkPublishedAtMs(chunk) > 0)
+    .sort((left, right) => getChunkPublishedAtMs(right) - getChunkPublishedAtMs(left));
+  const newestHighSignalRows = newestRows.filter((chunk) => !chunkIsLowSignal(chunk));
+  const fallbackNewestRows =
+    newestHighSignalRows.length >= 6 ? newestHighSignalRows.slice(0, 18) : newestRows.slice(0, 18);
+  const scopedRows =
+    preferredRows.length >= 12
+      ? preferredRows
+      : filtered.length > 0
+        ? filtered
+        : !scope?.explicit
+          ? fallbackNewestRows
+          : filtered;
 
   const bySource = new Map<string, { chunk: Chunk; score: number; publishedAtMs: number; chunkIndex: number }>();
 
@@ -720,6 +745,40 @@ function selectContextChunks(
 function preferHighSignalChunks(chunks: Chunk[]): Chunk[] {
   const highSignal = chunks.filter((chunk) => !chunkIsLowSignal(chunk));
   return highSignal.length >= 6 ? highSignal : chunks;
+}
+
+function buildSourceContextSummary(
+  chunks: Chunk[],
+  options: { recencyRequested: boolean }
+): SourceContextSummary | null {
+  if (chunks.length === 0) return null;
+
+  const sourceFamilies = [...new Set(chunks.map((chunk) => getChunkSourceFamily(chunk)))];
+  const latestPublishedMs = chunks.reduce((latest, chunk) => {
+    const next = getChunkPublishedAtMs(chunk);
+    return next > latest ? next : latest;
+  }, 0);
+  const latestChunk =
+    latestPublishedMs > 0
+      ? chunks.find((chunk) => getChunkPublishedAtMs(chunk) === latestPublishedMs)
+      : undefined;
+  const latestPublishedAt = latestChunk ? getChunkPublishedAt(latestChunk) || undefined : undefined;
+  const latestPublishedLabel =
+    latestPublishedMs > 0 ? LONG_DATE_FORMATTER.format(new Date(latestPublishedMs)) : undefined;
+  const ageDays =
+    latestPublishedMs > 0
+      ? Math.max(0, (Date.now() - latestPublishedMs) / (24 * 60 * 60 * 1000))
+      : Number.POSITIVE_INFINITY;
+
+  return {
+    latestPublishedAt,
+    latestPublishedLabel,
+    latestPublishedMs,
+    stale: options.recencyRequested && (!latestPublishedMs || ageDays > 45),
+    recencyRequested: options.recencyRequested,
+    sourceFamilies,
+    hasMixedSources: sourceFamilies.length > 1,
+  };
 }
 
 function getSourceTitle(chunk: Chunk): string {
@@ -926,7 +985,17 @@ export async function POST(req: Request) {
       const { data: fallback } = await getSupabase()
         .from(KNOWLEDGE_BASE_TABLE)
         .select("content, source_type, source_url, metadata")
-        .in("source_type", ["bio", "interview", "article", "telegram_post"])
+        .in("source_type", [
+          "bio",
+          "interview",
+          "article",
+          "youtube",
+          "youtube_transcript",
+          "linkedin",
+          "linkedin_post",
+          "book",
+          "telegram_post",
+        ])
         .order("id")
         .limit(15);
       chunks = [...(chunks || []), ...((fallback as Chunk[]) || [])];
@@ -963,6 +1032,9 @@ export async function POST(req: Request) {
         profileReserve: queryIntent.prefersBiography ? 2 : 0,
       })
     : [];
+  const sourceContextSummary = buildSourceContextSummary(selectedChunks, {
+    recencyRequested: queryIntent.prefersRecent || Boolean(userDateScope),
+  });
 
   // --- Build context ---
   const context = selectedChunks.length
@@ -987,6 +1059,15 @@ export async function POST(req: Request) {
       : "",
     !userDateScope && supplementalTelegramChunks.length > 0
       ? "The user is asking about recent or latest thinking. Prioritize the freshest dated Telegram posts in the context."
+      : "",
+    sourceContextSummary?.latestPublishedLabel && (queryIntent.prefersRecent || Boolean(userDateScope))
+      ? `The freshest dated public item in context is ${sourceContextSummary.latestPublishedLabel}.`
+      : "",
+    sourceContextSummary?.stale && sourceContextSummary.latestPublishedLabel
+      ? `This is not a truly current update. Say clearly that the newest public material available here is from ${sourceContextSummary.latestPublishedLabel}, and do not imply newer public updates exist.`
+      : "",
+    sourceContextSummary?.hasMixedSources && queryIntent.prefersBalancedSources
+      ? "Use the mix of Telegram posts, interviews, talks, and profile material when answering broad questions."
       : "",
   ].filter(Boolean);
 
@@ -1045,6 +1126,17 @@ export async function POST(req: Request) {
   try {
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
+        if (attachSources && sourceContextSummary) {
+          writer.write({
+            type: "source-context",
+            latestPublishedAt: sourceContextSummary.latestPublishedAt,
+            stale: sourceContextSummary.stale,
+            recencyRequested: sourceContextSummary.recencyRequested,
+            sourceFamilies: sourceContextSummary.sourceFamilies,
+            hasMixedSources: sourceContextSummary.hasMixedSources,
+          });
+        }
+
         // Send source data for expandable UI toggle
         for (const src of uniqueSources) {
           writer.write({

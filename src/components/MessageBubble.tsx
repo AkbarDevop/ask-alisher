@@ -17,37 +17,39 @@ function timeAgo(date: Date): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function getSourceTypeLabel(type: string): string {
+function getSourceTypeLabel(type: string, lang: Language): string {
   switch (type) {
     case "telegram_post":
-      return "Telegram Post";
+      return lang === "uz" ? "Telegram posti" : "Telegram post";
     case "telegram":
-      return "Telegram";
+      return lang === "uz" ? "Telegram arxivi" : "Telegram";
     case "youtube":
     case "youtube_transcript":
       return "YouTube";
     case "interview":
-      return "Interview";
+      return lang === "uz" ? "Intervyu" : "Interview";
     case "article":
-      return "Article";
+      return lang === "uz" ? "Maqola" : "Article";
     case "bio":
-      return "Profile";
+      return lang === "uz" ? "Profil" : "Profile";
     default:
       return type.replace(/_/g, " ");
   }
 }
 
-function getSourceActionLabel(type: string): string {
+function getSourceActionLabel(type: string, lang: Language): string {
   switch (type) {
     case "telegram_post":
-      return "Open";
+      return lang === "uz" ? "Postni ochish" : "Open post";
     case "telegram":
-      return "Open";
+      return lang === "uz" ? "Kanalni ochish" : "Open channel";
     case "youtube":
     case "youtube_transcript":
-      return "Open";
+      return lang === "uz" ? "Ko'rish" : "Watch";
+    case "article":
+      return lang === "uz" ? "O'qish" : "Read";
     default:
-      return "Open";
+      return lang === "uz" ? "Ochish" : "Open";
   }
 }
 
@@ -109,6 +111,87 @@ function getSourceTimestamp(publishedAt?: string): number {
   if (!publishedAt) return Number.NEGATIVE_INFINITY;
   const timestamp = Date.parse(publishedAt);
   return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+}
+
+function formatSourceDate(publishedAt: string | undefined, lang: Language): string | null {
+  if (!publishedAt) return null;
+  const timestamp = Date.parse(publishedAt);
+  if (Number.isNaN(timestamp)) return null;
+
+  return new Intl.DateTimeFormat(lang === "uz" ? "uz-UZ" : "en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
+function getSourceFamilyLabel(family: string, lang: Language): string {
+  switch (family) {
+    case "telegram":
+      return "Telegram";
+    case "longform":
+      return lang === "uz" ? "intervyu va chiqishlar" : "interviews and talks";
+    case "profile":
+      return lang === "uz" ? "profil materiallari" : "profile material";
+    default:
+      return lang === "uz" ? "ommaviy manbalar" : "public sources";
+  }
+}
+
+function buildSourceContextCopy(
+  context:
+    | {
+        latestPublishedAt?: string;
+        stale?: boolean;
+        recencyRequested?: boolean;
+        sourceFamilies: string[];
+        hasMixedSources?: boolean;
+      }
+    | null,
+  lang: Language
+): { title: string; detail?: string } | null {
+  if (!context) return null;
+
+  const latestLabel = formatSourceDate(context.latestPublishedAt, lang);
+
+  if (context.recencyRequested && latestLabel) {
+    return {
+      title:
+        lang === "uz"
+          ? `Eng yangi ommaviy manba: ${latestLabel}`
+          : `Freshest public source: ${latestLabel}`,
+      detail: context.stale
+        ? lang === "uz"
+          ? "Bu javob yangi yangilanish emas, mavjud eng so'nggi ommaviy materialga tayangan."
+          : "This answer relies on the latest public material available here, but it is not a truly current update."
+        : lang === "uz"
+          ? "Javob shu to'plamdagi eng yangi ommaviy materialga tayangan."
+          : "This answer is anchored to the freshest public material in this set.",
+    };
+  }
+
+  if (context.hasMixedSources && context.sourceFamilies.length > 1) {
+    const familyList = context.sourceFamilies
+      .filter((family) => family !== "other")
+      .map((family) => getSourceFamilyLabel(family, lang))
+      .join(", ");
+
+    return {
+      title:
+        lang === "uz"
+          ? "Javob bir nechta ommaviy manbaga tayangan"
+          : "Grounded in multiple public sources",
+      detail:
+        familyList.length > 0
+          ? lang === "uz"
+            ? `Bu javob ${familyList} kabi manbalarga tayangan.`
+            : `This answer blends sources like ${familyList}.`
+          : undefined,
+    };
+  }
+
+  return null;
 }
 
 interface MessageBubbleProps {
@@ -308,6 +391,21 @@ export function MessageBubble({
       }
     }
   }
+  const sourceContext =
+    !isUser && message.parts
+      ? (
+          message.parts.find((part) => part.type === "source-context") as
+            | {
+                type: "source-context";
+                latestPublishedAt?: string;
+                stale?: boolean;
+                recencyRequested?: boolean;
+                sourceFamilies?: string[];
+                hasMixedSources?: boolean;
+              }
+            | undefined
+        )
+      : undefined;
 
   const suppressSources = !isUser && shouldSuppressSources(text);
   const baseSources = suppressSources
@@ -315,6 +413,21 @@ export function MessageBubble({
     : sources.some((source) => source.type === "telegram_post")
       ? sources.filter((source) => source.type !== "telegram")
       : sources;
+  const sourceContextCopy =
+    !isUser && baseSources.length > 0
+      ? buildSourceContextCopy(
+          sourceContext
+            ? {
+                latestPublishedAt: sourceContext.latestPublishedAt,
+                stale: sourceContext.stale,
+                recencyRequested: sourceContext.recencyRequested,
+                sourceFamilies: Array.isArray(sourceContext.sourceFamilies) ? sourceContext.sourceFamilies : [],
+                hasMixedSources: sourceContext.hasMixedSources,
+              }
+            : null,
+          lang
+        )
+      : null;
   const displaySources =
     !isUser && shouldShowFreshestSourceOnly(text)
       ? (() => {
@@ -528,6 +641,23 @@ export function MessageBubble({
           {/* Expandable sources toggle */}
           {displaySources.length > 0 && !isStreaming && (
             <div className="mt-2 border-t pt-1.5" style={{ borderColor: "var(--border)" }}>
+              {sourceContextCopy && (
+                <div
+                  className="mb-2 rounded-xl border px-3 py-2 text-[11px]"
+                  style={{
+                    borderColor: "var(--border)",
+                    background: "var(--suggestion-bg)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  <div className="font-medium">{sourceContextCopy.title}</div>
+                  {sourceContextCopy.detail && (
+                    <div className="mt-1 text-[10px] leading-relaxed" style={{ color: "var(--muted)" }}>
+                      {sourceContextCopy.detail}
+                    </div>
+                  )}
+                </div>
+              )}
               <button
                 onClick={() => setSourcesOpen((o) => !o)}
                 className="flex w-full items-center gap-1.5 py-1 text-[11px] transition-opacity hover:opacity-80"
@@ -536,7 +666,7 @@ export function MessageBubble({
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3 w-3" style={{ opacity: 0.6 }}>
                   <path fillRule="evenodd" d="M4.5 13a3.5 3.5 0 0 1-.41-6.97A4.5 4.5 0 0 1 8.5 2a4.5 4.5 0 0 1 4.41 4.03A3.5 3.5 0 0 1 11.5 13h-7Z" clipRule="evenodd" />
                 </svg>
-                Sources
+                {lang === "uz" ? "Manbalar" : "Sources"}
                 <span
                   className="rounded-full px-1.5 py-0.5 text-[10px]"
                   style={{ background: "var(--suggestion-bg)", color: "var(--foreground)" }}
@@ -596,10 +726,16 @@ export function MessageBubble({
                             {s.title}
                           </div>
                           <div
-                            className="truncate text-[10px]"
+                            className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]"
                             style={{ opacity: 0.72 }}
                           >
-                            {getSourceTypeLabel(s.type)}
+                            <span>{getSourceTypeLabel(s.type, lang)}</span>
+                            {formatSourceDate(s.publishedAt, lang) && (
+                              <>
+                                <span aria-hidden="true">•</span>
+                                <span>{formatSourceDate(s.publishedAt, lang)}</span>
+                              </>
+                            )}
                           </div>
                           {s.snippet && (
                             <div
@@ -627,7 +763,7 @@ export function MessageBubble({
                           )}
                         </div>
                         <div className="ml-auto flex shrink-0 items-center gap-1 text-[10px]" style={{ opacity: 0.66 }}>
-                          <span>{getSourceActionLabel(s.type)}</span>
+                          <span>{getSourceActionLabel(s.type, lang)}</span>
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-2.5 w-2.5">
                             <path d="M5.25 3.5a.75.75 0 0 0 0 1.5h3.69L3.97 9.97a.75.75 0 1 0 1.06 1.06L10 6.06v3.69a.75.75 0 0 0 1.5 0v-5.5a.75.75 0 0 0-.75-.75h-5.5Z" />
                           </svg>
@@ -653,10 +789,16 @@ export function MessageBubble({
                             {s.title}
                           </div>
                           <div
-                            className="truncate text-[10px]"
+                            className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]"
                             style={{ opacity: 0.72 }}
                           >
-                            {getSourceTypeLabel(s.type)}
+                            <span>{getSourceTypeLabel(s.type, lang)}</span>
+                            {formatSourceDate(s.publishedAt, lang) && (
+                              <>
+                                <span aria-hidden="true">•</span>
+                                <span>{formatSourceDate(s.publishedAt, lang)}</span>
+                              </>
+                            )}
                           </div>
                           {s.snippet && (
                             <div
