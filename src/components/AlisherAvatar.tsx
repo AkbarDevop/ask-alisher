@@ -22,6 +22,14 @@ export function AlisherAvatar({ size = "lg", lang = "en" }: { size?: "sm" | "lg"
           priority={size === "lg"}
         />
       </div>
+      {size === "lg" ? (
+        <h1
+          className="text-xl font-semibold tracking-tight sm:text-2xl"
+          style={{ color: "var(--foreground)" }}
+        >
+          Alisher Sadullaev
+        </h1>
+      ) : null}
     </div>
   );
 }
