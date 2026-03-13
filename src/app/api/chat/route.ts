@@ -344,13 +344,13 @@ function buildStaticRefusalText(options: {
   if (options.isFutureDate) {
     return options.prefersUzbek
       ? "Bu sana hali kelajakda. Shu davr haqida ochiq gapirganim bo'lishi mumkin emas."
-      : "I have not shared anything publicly from that future date, because it has not happened yet.";
+      : "I haven't shared anything publicly from that future date, because it hasn't happened yet.";
   }
 
   if (options.isPrivateOrInternal) {
     return options.prefersUzbek
       ? "Bu shaxsiy yoki ommaga e'lon qilinmagan ma'lumot. Buni omma bilan ulashmaganman."
-      : "That is not something I have shared publicly, and I cannot help with private or unannounced information.";
+      : "That is not something I've shared publicly, and I can't help with private or unannounced information.";
   }
 
   if (options.isOutOfScope) {
