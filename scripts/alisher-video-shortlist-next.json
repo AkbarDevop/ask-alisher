@@ -1,0 +1,83 @@
+[
+  {
+    "id": "vEGC64aYTaM",
+    "title": "Alisher Sa'dullayev: Alishmas qadriyatlarim",
+    "channel": "102 tv",
+    "kind": "interview",
+    "duration": "1:53:34",
+    "priority": "highest",
+    "reason": "Long-form interview likely rich on values, worldview, public service, youth policy, and biography."
+  },
+  {
+    "id": "AYMO5--MiI4",
+    "title": "Yoshlar bilan ishlash tizimi bo'yicha axborot berildi",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "5:58",
+    "priority": "high",
+    "reason": "Useful for policy, institutional design, and practical youth-work system questions."
+  },
+  {
+    "id": "WFXQM9uELzU",
+    "title": "Ta'lim. Kecha va bugun.",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "4:39",
+    "priority": "high",
+    "reason": "Good fit for education, system-change, and mindset questions."
+  },
+  {
+    "id": "olicy8LKqjY",
+    "title": "Iste’dodsiz farzand bo‘lmaydi, e’tiborsiz ota-onalar bor, xolos",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "5:24",
+    "priority": "high",
+    "reason": "Strong candidate for family, talent, education, and youth-development answers."
+  },
+  {
+    "id": "qP3nR1_FNck",
+    "title": "Samarqandda yoshlar bilan muloqotlarimiz chog'ida yosh tadbirkorlar faoliyatini kuzatdik",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "4:03",
+    "priority": "high",
+    "reason": "Useful for regional entrepreneurship and practical youth-opportunity questions."
+  },
+  {
+    "id": "JMteWhIrnqU",
+    "title": "Uzchess Cup 2024 superturniri",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "5:42",
+    "priority": "high",
+    "reason": "Improves chess-related coverage with institutional and event context."
+  },
+  {
+    "id": "gzaEN4AV0J4",
+    "title": "Professor Oldiyevning 6 kun umri qoldimi?",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "6:00",
+    "priority": "medium",
+    "reason": "May add useful material on mindset, education, or personal reflection."
+  },
+  {
+    "id": "gf9ZtULvdSc",
+    "title": "Prezident ham hayajonlanadigan payt bo‘lar ekan",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "duration": "4:40",
+    "priority": "medium",
+    "reason": "Possible value for leadership, public speaking, and high-pressure moments."
+  },
+  {
+    "id": "8t_aUbZvTRE",
+    "title": "Yosh kitobxon | 2024-yil",
+    "channel": "Alisher Sadullayev",
+    "kind": "event",
+    "duration": "2:04:52",
+    "priority": "medium",
+    "reason": "Large event recording that may contain useful reading-culture and youth-engagement material if transcript quality holds."
+  }
+]
