@@ -18,15 +18,17 @@ import * as fs from "fs";
 import * as path from "path";
 import {
   collectFilesRecursive,
+  chunkDocumentBySource,
   detectLanguageHeuristic,
   detectFirstPersonVoice,
   inferTopics,
   isLowSignalChunk,
   parseStructuredDocument,
-  chunkText,
   loadLocalEnv,
   parseCliArgs,
+  prepareSourceText,
   sleep,
+  shouldSkipSourceDocument,
 } from "./lib/ingestion-utils";
 import { getGeminiEmbeddings } from "./lib/gemini-embeddings";
 import { KNOWLEDGE_BASE_TABLE } from "../src/lib/knowledge-base";
@@ -299,20 +301,36 @@ async function main() {
     const structured = parseStructuredDocument(rawContent);
     const parsed = parseFilename(file);
     const sourceType = parsed.sourceType;
-    const content = structured.body || rawContent;
+    const rawBody = structured.body || rawContent;
     const language =
       detectLanguage(rawContent) ||
       (sourceType === "telegram_post"
-        ? detectLanguageHeuristic(content)
+        ? detectLanguageHeuristic(rawBody)
         : null) ||
       parsed.language;
     const sourceUrl = extractUrl(rawContent);
     const sourceDomain = getSourceDomain(sourceUrl);
     const sourceAuthority = inferSourceAuthority(sourceType, sourceDomain, structured.metadata);
+    const content = prepareSourceText({
+      sourceType,
+      content: rawBody,
+      metadata: structured.metadata,
+    });
 
     console.log(
       `Processing: ${file} (type: ${sourceType}, lang: ${language})`
     );
+
+    if (
+      shouldSkipSourceDocument({
+        sourceType,
+        content: rawBody,
+        metadata: structured.metadata,
+      })
+    ) {
+      console.log("  → skipped whole document as low-signal for this source type");
+      continue;
+    }
 
     if (!shouldClearAll) {
       let deleteQuery = supabase.from(KNOWLEDGE_BASE_TABLE).delete().eq("source_type", sourceType);
@@ -328,7 +346,11 @@ async function main() {
       }
     }
 
-    const chunks = chunkText(content);
+    const chunks = chunkDocumentBySource({
+      sourceType,
+      content,
+      metadata: structured.metadata,
+    });
     console.log(`  → ${chunks.length} chunks before low-signal filtering`);
 
     const preparedChunks = chunks

@@ -15,6 +15,12 @@ type ChunkOptions = {
   chunkOverlap?: number;
 };
 
+type SourceAwareChunkInput = {
+  sourceType: string;
+  content: string;
+  metadata?: Record<string, string>;
+};
+
 export function loadLocalEnv(filename = ".env.local"): void {
   const envPath = path.join(process.cwd(), filename);
   if (!fs.existsSync(envPath)) return;
@@ -133,6 +139,184 @@ export function chunkText(text: string, options: ChunkOptions = {}): string[] {
   }
 
   return chunks;
+}
+
+function chunkParagraphs(paragraphs: string[], options: ChunkOptions = {}): string[] {
+  const chunkSize = options.chunkSize ?? DEFAULT_CHUNK_SIZE;
+  const chunkOverlap = options.chunkOverlap ?? DEFAULT_CHUNK_OVERLAP;
+  const chunkChars = chunkSize * CHARS_PER_TOKEN;
+  const overlapChars = chunkOverlap * CHARS_PER_TOKEN;
+  const chunks: string[] = [];
+
+  let current = "";
+
+  for (const paragraph of paragraphs) {
+    if (!paragraph) continue;
+
+    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (candidate.length <= chunkChars) {
+      current = candidate;
+      continue;
+    }
+
+    if (current.trim().length > 50) {
+      chunks.push(current.trim());
+      const overlapSeed = overlapChars > 0 ? current.slice(Math.max(0, current.length - overlapChars)).trim() : "";
+      current = overlapSeed ? `${overlapSeed}\n\n${paragraph}` : paragraph;
+    } else if (paragraph.length > chunkChars * 1.2) {
+      for (const subChunk of chunkText(paragraph, options)) {
+        chunks.push(subChunk);
+      }
+      current = "";
+    } else {
+      current = paragraph;
+    }
+  }
+
+  if (current.trim().length > 50) {
+    chunks.push(current.trim());
+  }
+
+  return chunks;
+}
+
+function compactWhitespace(text: string): string {
+  return text
+    .replace(/[ \t]+/gu, " ")
+    .replace(/\n{3,}/gu, "\n\n")
+    .trim();
+}
+
+function cleanYoutubeLine(line: string): string {
+  const trimmed = line.trim();
+  if (!trimmed) return "";
+  if (/^\[(?:music|applause|laughter|music playing)\]$/iu.test(trimmed)) return "";
+  if (/^(?:music|applause|laughter|foreign|abone ol|subscribe)$/iu.test(trimmed)) return "";
+  if (/^\d+(?::\d+){1,2}$/u.test(trimmed)) return "";
+  if (/^[^\p{L}]{0,6}$/u.test(trimmed)) return "";
+
+  return trimmed
+    .replace(/^>>\s*/u, "")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+function normalizeYoutubeTranscript(text: string): string {
+  const rawLines = text
+    .split("\n")
+    .map(cleanYoutubeLine)
+    .filter(Boolean);
+
+  if (rawLines.length === 0) return "";
+
+  const paragraphs: string[] = [];
+  let current = "";
+
+  for (const line of rawLines) {
+    const lineLetters = (line.match(/\p{L}/gu) || []).length;
+    if (lineLetters < 3) continue;
+
+    const looksLikeNewParagraph =
+      current.length > 0 &&
+      (
+        /[.!?]["')\]]?$/u.test(current) ||
+        /^[A-ZА-ЯOʻ‘“"']/u.test(line) ||
+        current.length > 700
+      );
+
+    if (looksLikeNewParagraph) {
+      paragraphs.push(current.trim());
+      current = line;
+      continue;
+    }
+
+    current = current ? `${current} ${line}` : line;
+  }
+
+  if (current.trim()) {
+    paragraphs.push(current.trim());
+  }
+
+  return compactWhitespace(paragraphs.join("\n\n"));
+}
+
+function normalizeOfficialDocument(text: string): string {
+  const paragraphs = text
+    .split(/\n{2,}/u)
+    .map((part) => compactWhitespace(part))
+    .filter(Boolean);
+
+  return paragraphs.join("\n\n");
+}
+
+function isLowSignalYoutubeTranscript(text: string): boolean {
+  const cleaned = normalizeYoutubeTranscript(text);
+  if (!cleaned) return true;
+
+  const letters = (cleaned.match(/\p{L}/gu) || []).length;
+  const words = cleaned.split(/\s+/u).filter(Boolean);
+  const uniqueWords = new Set(words.map((word) => word.toLowerCase()));
+  const uniqueRatio = words.length === 0 ? 0 : uniqueWords.size / words.length;
+  const rawLines = text
+    .split("\n")
+    .map(cleanYoutubeLine)
+    .filter(Boolean);
+  const mixedScriptShare =
+    rawLines.length === 0
+      ? 0
+      : rawLines.filter((line) => /[A-Za-z]/u.test(line) && /\p{Script=Cyrillic}/u.test(line)).length / rawLines.length;
+
+  if (letters < 350) return true;
+  if (words.length > 30 && uniqueRatio < 0.22) return true;
+  if (/[а-яё]/iu.test(cleaned) && /[a-z]/iu.test(cleaned) && uniqueRatio < 0.3) return true;
+  if (mixedScriptShare > 0.18) return true;
+
+  return false;
+}
+
+export function prepareSourceText({
+  sourceType,
+  content,
+}: SourceAwareChunkInput): string {
+  if (sourceType === "youtube") {
+    return normalizeYoutubeTranscript(content);
+  }
+
+  if (["article", "interview", "bio", "presentation"].includes(sourceType)) {
+    return normalizeOfficialDocument(content);
+  }
+
+  return compactWhitespace(content);
+}
+
+export function shouldSkipSourceDocument({
+  sourceType,
+  content,
+}: SourceAwareChunkInput): boolean {
+  if (sourceType === "youtube") {
+    return isLowSignalYoutubeTranscript(content);
+  }
+
+  return false;
+}
+
+export function chunkDocumentBySource({
+  sourceType,
+  content,
+}: SourceAwareChunkInput): string[] {
+  if (sourceType === "youtube") {
+    const prepared = prepareSourceText({ sourceType, content });
+    const paragraphs = prepared.split(/\n{2,}/u).filter(Boolean);
+    return chunkParagraphs(paragraphs, { chunkSize: 850, chunkOverlap: 120 });
+  }
+
+  if (["article", "interview", "bio", "presentation"].includes(sourceType)) {
+    const prepared = prepareSourceText({ sourceType, content });
+    const paragraphs = prepared.split(/\n{2,}/u).filter(Boolean);
+    return chunkParagraphs(paragraphs, { chunkSize: 760, chunkOverlap: 90 });
+  }
+
+  return chunkText(content);
 }
 
 export function detectLanguageHeuristic(text: string): "en" | "uz" | "ru" {
@@ -280,4 +464,9 @@ export function parseStructuredDocument(raw: string): {
   };
 }
 
-export { detectFirstPersonVoice, inferTopics, isLowSignalChunk, isLowSignalTelegramContent };
+export {
+  detectFirstPersonVoice,
+  inferTopics,
+  isLowSignalChunk,
+  isLowSignalTelegramContent,
+};
