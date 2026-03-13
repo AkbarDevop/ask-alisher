@@ -196,9 +196,14 @@ export type Language = "en" | "uz";
 export const UI_TEXT = {
   en: {
     heroTitle: "Ask Alisher",
+    heroEyebrow: "Public posts, talks, and interviews only",
     heroDescription:
-      "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive",
-    poweredBy: "Powered by Gemini · Context from Telegram posts, interviews, and public talks",
+      "An AI conversation with Alisher Sadullaev's public voice across youth, education, entrepreneurship, regional development, and chess.",
+    heroSupport:
+      "Best when you ask about a recent public update, a concrete initiative, or a bigger belief he has repeated across interviews and talks.",
+    heroPromptIntro: "Start with one of these threads",
+    heroSignals: ["Recent updates", "Deeper questions", "Unexpected angles"],
+    poweredBy: "Gemini-powered · Grounded in Telegram posts, interviews, and public talks",
     newChat: "New chat",
     placeholder: "Ask Alisher anything...",
     moreSuggestions: "More suggestions",
@@ -237,14 +242,20 @@ export const UI_TEXT = {
     ],
     errorRate: "Too many requests. Please wait a moment and try again.",
     errorServer: "Alisher is temporarily unavailable. Please try again shortly.",
+    errorProtection: "Quick verification is still loading. Wait a moment and send again.",
     errorGeneric: "Something went wrong. Please try again.",
   },
   uz: {
     heroTitle: "Alisherga savol bering",
+    heroEyebrow: "Faqat ommaviy postlar, intervyular va chiqishlar asosida",
     heroDescription:
-      "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive",
+      "Alisher Sadullaevning yoshlarga oid qarashlari, tashabbuslari va ommaviy chiqishlariga tayangan AI suhbatdosh.",
+    heroSupport:
+      "Eng yaxshi natija uchun yaqindagi ommaviy yangilanish, aniq dastur yoki u ko'p takrorlaydigan katta g'oya haqida so'rang.",
+    heroPromptIntro: "Suhbatni shu yo'nalishlardan boshlang",
+    heroSignals: ["So'nggi mavzular", "Chuqur savollar", "Kutilmagan burchaklar"],
     poweredBy:
-      "Gemini asosida · Telegram postlari, intervyular va ommaviy chiqishlardan kontekst",
+      "Gemini asosida · Telegram postlari, intervyular va ommaviy chiqishlarga tayangan",
     newChat: "Yangi suhbat",
     placeholder: "Alisherga savol bering...",
     moreSuggestions: "Boshqa savollar",
@@ -283,6 +294,7 @@ export const UI_TEXT = {
     ],
     errorRate: "Juda ko'p so'rov. Iltimos, biroz kuting va qayta urinib ko'ring.",
     errorServer: "Alisher vaqtincha mavjud emas. Iltimos, keyinroq urinib ko'ring.",
+    errorProtection: "Qisqa tekshiruv hali tayyor emas. Biroz kutib, yana yuboring.",
     errorGeneric: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.",
   },
 } as const;

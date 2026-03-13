@@ -53,6 +53,130 @@ function getSourceActionLabel(type: string, lang: Language): string {
   }
 }
 
+type SourceCard = {
+  id: string;
+  type: string;
+  url: string;
+  title: string;
+  snippet?: string;
+  topics: string[];
+  publishedAt?: string;
+};
+
+function formatSourceTitleDate(publishedAt: string | undefined, lang: Language): string | null {
+  if (!publishedAt) return null;
+  const timestamp = Date.parse(publishedAt);
+  if (Number.isNaN(timestamp)) return null;
+
+  return new Intl.DateTimeFormat(lang === "uz" ? "uz-UZ" : "en-US", {
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
+}
+
+function getSourceHostLabel(url: string): string | null {
+  if (!url.startsWith("http")) return null;
+
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./u, "");
+    const hostMap: Array<[suffix: string, label: string]> = [
+      ["t.me", "Telegram"],
+      ["youtube.com", "YouTube"],
+      ["youtu.be", "YouTube"],
+      ["kun.uz", "Kun.uz"],
+      ["daryo.uz", "Daryo"],
+      ["spot.uz", "Spot"],
+      ["gazeta.uz", "Gazeta.uz"],
+      ["anhor.uz", "Anhor.uz"],
+      ["stanford.edu", "Stanford"],
+      ["gsb.stanford.edu", "Stanford GSB"],
+      ["ted.com", "TED"],
+      ["fide.com", "FIDE"],
+    ];
+
+    for (const [suffix, label] of hostMap) {
+      if (hostname === suffix || hostname.endsWith(`.${suffix}`)) {
+        return label;
+      }
+    }
+
+    return hostname;
+  } catch {
+    return null;
+  }
+}
+
+function isGenericSourceTitle(title: string): boolean {
+  const normalized = title.trim().toLowerCase();
+  if (!normalized) return true;
+
+  return [
+    "telegram post",
+    "telegram archive",
+    "interview",
+    "article",
+    "bio",
+    "youtube",
+    "linkedin",
+    "profile",
+  ].includes(normalized) || normalized.includes("post #");
+}
+
+function getDisplaySourceTitle(source: SourceCard, lang: Language): string {
+  if (source.type === "telegram_post") {
+    const dateLabel = formatSourceTitleDate(source.publishedAt, lang);
+    if (dateLabel) {
+      return lang === "uz" ? `${dateLabel} posti` : `${dateLabel} post`;
+    }
+    return lang === "uz" ? "Telegram posti" : "Telegram post";
+  }
+
+  if (source.type === "telegram") {
+    return lang === "uz" ? "Telegram kanali" : "Telegram channel";
+  }
+
+  if (source.title && !isGenericSourceTitle(source.title)) {
+    return source.title;
+  }
+
+  const hostLabel = getSourceHostLabel(source.url);
+
+  switch (source.type) {
+    case "youtube":
+    case "youtube_transcript":
+      return lang === "uz" ? "YouTube chiqishi" : "YouTube talk";
+    case "interview":
+      return hostLabel
+        ? lang === "uz"
+          ? `${hostLabel} intervyusi`
+          : `${hostLabel} interview`
+        : lang === "uz"
+          ? "Ommaviy intervyu"
+          : "Public interview";
+    case "article":
+      return hostLabel
+        ? lang === "uz"
+          ? `${hostLabel} maqolasi`
+          : `${hostLabel} article`
+        : lang === "uz"
+          ? "Ommaviy maqola"
+          : "Public article";
+    case "bio":
+      return hostLabel
+        ? lang === "uz"
+          ? `${hostLabel} profili`
+          : `${hostLabel} profile`
+        : lang === "uz"
+          ? "Qisqa profil"
+          : "Profile note";
+    case "linkedin_post":
+      return lang === "uz" ? "LinkedIn posti" : "LinkedIn post";
+    default:
+      return source.title || getSourceTypeLabel(source.type, lang);
+  }
+}
+
 function getTopicLabel(topic: string, lang: Language): string {
   const labels: Record<string, { en: string; uz: string }> = {
     youth: { en: "Youth", uz: "Yoshlar" },
@@ -378,15 +502,7 @@ export function MessageBubble({
     : rawText;
 
   // Extract sources from source-url parts
-  const sources: {
-    id: string;
-    type: string;
-    url: string;
-    title: string;
-    snippet?: string;
-    topics: string[];
-    publishedAt?: string;
-  }[] = [];
+  const sources: SourceCard[] = [];
   if (!isUser && message.parts) {
     for (const part of message.parts) {
       if (part.type === "source-url") {
@@ -716,6 +832,7 @@ export function MessageBubble({
               {sourcesOpen && (
                 <div className="mt-1.5 flex flex-col gap-1.5 animate-fade-in">
                   {displaySources.map((s) => {
+                    const displayTitle = getDisplaySourceTitle(s, lang);
                     const isLink = s.url.startsWith("http");
                     return isLink ? (
                       <a
@@ -737,7 +854,7 @@ export function MessageBubble({
                           e.currentTarget.style.background = "transparent";
                           e.currentTarget.style.color = "var(--muted)";
                         }}
-                        onClick={() => trackOutboundClick(s.url, s.title)}
+                        onClick={() => trackOutboundClick(s.url, displayTitle)}
                       >
                         <div
                           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md"
@@ -750,7 +867,7 @@ export function MessageBubble({
                             className="truncate text-[12px] font-medium"
                             style={{ color: "var(--foreground)" }}
                           >
-                            {s.title}
+                            {displayTitle}
                           </div>
                           <div
                             className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]"
@@ -813,7 +930,7 @@ export function MessageBubble({
                             className="truncate text-[12px] font-medium"
                             style={{ color: "var(--foreground)" }}
                           >
-                            {s.title}
+                            {displayTitle}
                           </div>
                           <div
                             className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]"

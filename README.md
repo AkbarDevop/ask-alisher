@@ -63,6 +63,8 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 NEXT_PUBLIC_GTM_ID=GTM-N3M3DLLG
 NEXT_PUBLIC_GA_MEASUREMENT_IDS=G-BWTQB4SFP4,G-2XNF6BSJG8
+NEXT_PUBLIC_TURNSTILE_SITE_KEY=your_turnstile_site_key
+TURNSTILE_SECRET_KEY=your_turnstile_secret_key
 ANALYTICS_DASHBOARD_KEY=your_private_dashboard_key
 SITE_URL=https://askalishersadullaev.netlify.app
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
@@ -78,6 +80,7 @@ Important:
 - `scripts/backfill-topic-metadata.ts` can enrich the existing corpus with `topics`, `is_first_person`, and `is_low_signal` metadata without rebuilding embeddings.
 - GTM is wired through `NEXT_PUBLIC_GTM_ID`, defaulting to `GTM-N3M3DLLG` for the Alisher site.
 - GA4 is wired through `NEXT_PUBLIC_GA_MEASUREMENT_IDS`, defaulting to `G-BWTQB4SFP4,G-2XNF6BSJG8`.
+- Soft abuse protection is wired for Cloudflare Turnstile. Set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to enable it on the web chat route.
 - The app now writes a small first-party analytics stream into Supabase for local reporting scripts.
 - The protected first-party analytics dashboard reads `ANALYTICS_DASHBOARD_KEY` from the server environment.
 - The dashboard now includes sparkline KPI cards, anomaly flags, trend charts, conversion flow, prompt splits by language, a traffic health strip, top prompts, CSV export, citation-click analytics, a prompt explorer, a knowledge-base freshness panel, and a recent-events stream at `/admin/analytics`.

@@ -12,11 +12,46 @@ export const maxDuration = 60;
 
 const RATE_LIMIT = 30;
 const RATE_WINDOW_SECONDS = 60;
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 function isInternalChatRequest(req: Request) {
   const secret = process.env.INTERNAL_API_SECRET;
   if (!secret) return false;
   return req.headers.get("x-ask-alisher-internal") === secret;
+}
+
+async function verifyTurnstileToken(token: string, remoteIp?: string | null): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET_KEY?.trim();
+  if (!secret) return true;
+  if (!token.trim()) return false;
+
+  try {
+    const payload = new URLSearchParams({
+      secret,
+      response: token,
+    });
+
+    if (remoteIp && remoteIp !== "unknown") {
+      payload.set("remoteip", remoteIp);
+    }
+
+    const response = await fetch(TURNSTILE_VERIFY_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: payload.toString(),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const result = (await response.json()) as { success?: boolean };
+    return Boolean(result.success);
+  } catch {
+    return false;
+  }
 }
 
 // --- Input sanitization ---
@@ -1004,13 +1039,14 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
-  // --- Rate limiting ---
-  if (!isInternalChatRequest(req)) {
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
+  const internalRequest = isInternalChatRequest(req);
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
 
+  // --- Rate limiting ---
+  if (!internalRequest) {
     const rateLimit = await consumeAskAlisherRateLimit(ip, RATE_LIMIT, RATE_WINDOW_SECONDS);
     if (!rateLimit.allowed) {
       const retryAfterSeconds = Math.max(
@@ -1047,6 +1083,22 @@ export async function POST(req: Request) {
       JSON.stringify({ error: parsed.error }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
+  }
+
+  const turnstileToken =
+    typeof (body as { turnstileToken?: unknown }).turnstileToken === "string"
+      ? (body as { turnstileToken: string }).turnstileToken.trim()
+      : "";
+
+  if (!internalRequest && process.env.TURNSTILE_SECRET_KEY?.trim()) {
+    const verified = await verifyTurnstileToken(turnstileToken, ip);
+
+    if (!verified) {
+      return new Response(
+        JSON.stringify({ error: "Verification failed. Please try again." }),
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
+    }
   }
 
   const { messages } = parsed;

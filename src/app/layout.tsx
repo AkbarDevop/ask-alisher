@@ -14,6 +14,7 @@ const GA_MEASUREMENT_IDS = (
   .map((id) => id.trim())
   .filter(Boolean);
 const PRIMARY_GA_MEASUREMENT_ID = GA_MEASUREMENT_IDS[0];
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
 
 const inter = Inter({
   variable: "--font-inter",
@@ -105,6 +106,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${GTM_ID}');`}
         </Script>
+        {TURNSTILE_SITE_KEY ? (
+          <Script
+            id="turnstile-loader"
+            src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+            strategy="afterInteractive"
+          />
+        ) : null}
       </head>
       <body translate="no" className={`${inter.variable} notranslate font-sans antialiased`}>
         <noscript>

@@ -136,6 +136,14 @@ body {
   animation: spin 0.8s linear infinite;
 }
 
+.turnstile-shell {
+  min-height: 0;
+}
+
+.turnstile-shell > div {
+  margin: 0 auto;
+}
+
 /* Mobile touch optimizations */
 button,
 input,

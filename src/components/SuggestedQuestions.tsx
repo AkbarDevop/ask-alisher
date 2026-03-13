@@ -19,6 +19,29 @@ export function SuggestedQuestions({ onSelect, lang }: SuggestedQuestionsProps) 
 
   return (
     <div className="flex w-full max-w-lg flex-col items-center gap-3">
+      <div className="flex max-w-md flex-col items-center gap-2 text-center">
+        <p
+          className="text-[11px] font-medium uppercase tracking-[0.18em]"
+          style={{ color: "var(--muted)", opacity: 0.75 }}
+        >
+          {UI_TEXT[lang].heroPromptIntro}
+        </p>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {UI_TEXT[lang].heroSignals.map((signal) => (
+            <span
+              key={signal}
+              className="rounded-full px-2.5 py-1 text-[10px] font-medium"
+              style={{
+                background: "var(--suggestion-bg)",
+                border: "1px solid var(--border)",
+                color: "var(--muted)",
+              }}
+            >
+              {signal}
+            </span>
+          ))}
+        </div>
+      </div>
       <div className="grid w-full grid-cols-2 gap-2">
         {questions.map((question) => (
           <button

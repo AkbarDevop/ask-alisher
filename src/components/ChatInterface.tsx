@@ -33,7 +33,31 @@ type SourceUrlPart = {
   publishedAt?: string;
 };
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: {
+          sitekey: string;
+          theme?: "light" | "dark" | "auto";
+          appearance?: "always" | "execute" | "interaction-only";
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "timeout-callback"?: () => void;
+          "error-callback"?: () => void;
+          "response-field"?: boolean;
+          "refresh-expired"?: "auto" | "manual" | "never";
+        }
+      ) => string;
+      reset: (widgetId?: string) => void;
+      remove?: (widgetId?: string) => void;
+    };
+  }
+}
+
 const DEFAULT_GA_MEASUREMENT_IDS = ["G-BWTQB4SFP4", "G-2XNF6BSJG8"];
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "";
 const GA_MEASUREMENT_IDS = (
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_IDS ||
   process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ||
@@ -191,11 +215,15 @@ export function ChatInterface() {
   const [showThinking, setShowThinking] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [turnstileReady, setTurnstileReady] = useState(!TURNSTILE_SITE_KEY);
   const abortControllerRef = useRef<AbortController | null>(null);
   const thinkingTimer = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatAreaRef = useRef<HTMLDivElement>(null);
+  const turnstileContainerRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+  const turnstileTokenRef = useRef<string | null>(null);
   const restoredRef = useRef(false);
   const hadAssistantResponseRef = useRef(false);
   const sessionStartMsRef = useRef(Date.now());
@@ -255,6 +283,115 @@ export function ChatInterface() {
       clearError();
     }
   }, [clearError, error, lastAssistantText, lastMessage?.role]);
+
+  const resetTurnstileWidget = useCallback(() => {
+    if (!TURNSTILE_SITE_KEY) {
+      setTurnstileReady(true);
+      return;
+    }
+
+    if (!window.turnstile || !turnstileWidgetIdRef.current) {
+      setTurnstileReady(false);
+      return;
+    }
+
+    turnstileTokenRef.current = null;
+    setTurnstileReady(false);
+    window.turnstile.reset(turnstileWidgetIdRef.current);
+  }, []);
+
+  const ensureTurnstileToken = useCallback(async () => {
+    if (!TURNSTILE_SITE_KEY) return "";
+
+    if (turnstileTokenRef.current) {
+      return turnstileTokenRef.current;
+    }
+
+    if (!window.turnstile || !turnstileWidgetIdRef.current) {
+      throw new Error("TURNSTILE_NOT_READY");
+    }
+
+    resetTurnstileWidget();
+
+    const started = Date.now();
+
+    while (Date.now() - started < 6000) {
+      if (turnstileTokenRef.current) {
+        return turnstileTokenRef.current;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 150));
+    }
+
+    throw new Error("TURNSTILE_REQUIRED");
+  }, [resetTurnstileWidget]);
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+
+    let mounted = true;
+    let intervalId: number | undefined;
+
+    const mountTurnstile = () => {
+      if (!mounted) return true;
+      if (turnstileWidgetIdRef.current || !turnstileContainerRef.current || !window.turnstile) {
+        return false;
+      }
+
+      turnstileWidgetIdRef.current = window.turnstile.render(turnstileContainerRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: "auto",
+        appearance: "interaction-only",
+        "response-field": false,
+        "refresh-expired": "auto",
+        callback: (token) => {
+          turnstileTokenRef.current = token;
+          if (mounted) {
+            setTurnstileReady(true);
+          }
+        },
+        "expired-callback": () => {
+          turnstileTokenRef.current = null;
+          if (mounted) {
+            setTurnstileReady(false);
+          }
+        },
+        "timeout-callback": () => {
+          turnstileTokenRef.current = null;
+          if (mounted) {
+            setTurnstileReady(false);
+          }
+        },
+        "error-callback": () => {
+          turnstileTokenRef.current = null;
+          if (mounted) {
+            setTurnstileReady(false);
+          }
+        },
+      });
+
+      return true;
+    };
+
+    if (!mountTurnstile()) {
+      intervalId = window.setInterval(() => {
+        if (mountTurnstile() && intervalId) {
+          window.clearInterval(intervalId);
+        }
+      }, 250);
+    }
+
+    return () => {
+      mounted = false;
+      if (intervalId) {
+        window.clearInterval(intervalId);
+      }
+      if (window.turnstile && turnstileWidgetIdRef.current) {
+        window.turnstile.remove?.(turnstileWidgetIdRef.current);
+      }
+      turnstileWidgetIdRef.current = null;
+      turnstileTokenRef.current = null;
+    };
+  }, []);
 
   const hydrateSharedConversation = useCallback(
     async (shareId: string, fallbackQuestion: string | null) => {
@@ -387,6 +524,7 @@ export function ChatInterface() {
       setMessages([...conversation, assistantMessage]);
 
       try {
+        const turnstileToken = await ensureTurnstileToken();
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
@@ -394,13 +532,31 @@ export function ChatInterface() {
           },
           body: JSON.stringify({
             messages: toRequestMessages(conversation),
+            ...(turnstileToken ? { turnstileToken } : {}),
           }),
           signal: controller.signal,
         });
 
+        if (TURNSTILE_SITE_KEY) {
+          resetTurnstileWidget();
+        }
+
         if (!response.ok || !response.body) {
           const body = await response.text().catch(() => "");
-          throw new Error(body || `Request failed with status ${response.status}`);
+          let errorMessage = body || `Request failed with status ${response.status}`;
+
+          if (body) {
+            try {
+              const payload = JSON.parse(body) as { error?: string };
+              if (payload.error) {
+                errorMessage = payload.error;
+              }
+            } catch {
+              // Ignore parse issues and fall back to the raw text body.
+            }
+          }
+
+          throw new Error(errorMessage);
         }
 
         setStatus("streaming");
@@ -535,7 +691,7 @@ export function ChatInterface() {
         }
       }
     },
-    [clearError]
+    [clearError, ensureTurnstileToken, resetTurnstileWidget]
   );
 
   // Persist messages to localStorage
@@ -732,6 +888,8 @@ export function ChatInterface() {
 
   const getErrorMessage = (err: Error) => {
     const msg = err.message || "";
+    if (msg.includes("TURNSTILE") || msg.toLowerCase().includes("verification"))
+      return t.errorProtection;
     if (msg.includes("429") || msg.toLowerCase().includes("rate"))
       return t.errorRate;
     if (msg.includes("500") || msg.includes("503"))
@@ -741,6 +899,7 @@ export function ChatInterface() {
 
   const getErrorType = (err: Error) => {
     const msg = (err.message || "").toLowerCase();
+    if (msg.includes("turnstile") || msg.includes("verification")) return "verification";
     if (msg.includes("429") || msg.includes("rate")) return "rate_limit";
     if (msg.includes("500") || msg.includes("503")) return "server";
     if (msg.includes("network") || msg.includes("fetch")) return "network";
@@ -998,10 +1157,55 @@ export function ChatInterface() {
         <div className="mx-auto max-w-2xl space-y-5">
           {/* Hero */}
           {messages.length === 0 && (
-            <div className="hero-glow flex flex-col items-center gap-6 pt-6 sm:gap-10 sm:pt-12">
+            <div className="hero-glow flex flex-col items-center gap-6 pt-6 sm:gap-8 sm:pt-12">
+              <div className="flex max-w-2xl flex-col items-center gap-4 text-center">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <span
+                    className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em]"
+                    style={{
+                      background: "var(--suggestion-bg)",
+                      border: "1px solid var(--border)",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    {t.heroEyebrow}
+                  </span>
+                  <span
+                    className="rounded-full px-3 py-1 text-[10px] font-medium"
+                    style={{
+                      background: "var(--suggestion-bg)",
+                      border: "1px solid var(--border)",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {lang === "uz" ? "Sana bo'yicha sezgir" : "Date-aware"}
+                  </span>
+                  <span
+                    className="rounded-full px-3 py-1 text-[10px] font-medium"
+                    style={{
+                      background: "var(--suggestion-bg)",
+                      border: "1px solid var(--border)",
+                      color: "var(--foreground)",
+                    }}
+                  >
+                    {lang === "uz" ? "Ommaviy manbalar" : "Public-source grounded"}
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  <h1 className="text-3xl font-semibold tracking-tight sm:text-[2.5rem]">
+                    {t.heroTitle}
+                  </h1>
+                  <p className="mx-auto max-w-xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--foreground)" }}>
+                    {t.heroDescription}
+                  </p>
+                  <p className="mx-auto max-w-xl text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
+                    {t.heroSupport}
+                  </p>
+                </div>
+              </div>
               <AlisherAvatar size="lg" lang={lang} />
               <SuggestedQuestions key={lang} onSelect={handleSuggestedQuestion} lang={lang} />
-              <p className="text-xs" style={{ color: "var(--muted)" }}>
+              <p className="text-xs" style={{ color: "var(--muted)", maxWidth: "36rem", textAlign: "center" }}>
                 {t.poweredBy}
               </p>
             </div>
@@ -1154,6 +1358,15 @@ export function ChatInterface() {
             </svg>
           </button>
         </form>
+        {TURNSTILE_SITE_KEY ? (
+          <div className="mx-auto flex max-w-2xl justify-center px-3 pb-1 sm:px-4">
+            <div
+              ref={turnstileContainerRef}
+              aria-hidden={turnstileReady}
+              className="turnstile-shell"
+            />
+          </div>
+        ) : null}
         <div className="flex items-center justify-center gap-2 pb-2 sm:pb-3">
           <p
             className="text-center text-[10px] sm:text-[11px]"
