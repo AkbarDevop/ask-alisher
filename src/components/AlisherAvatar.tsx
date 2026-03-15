@@ -11,16 +11,19 @@ export function AlisherAvatar({ size = "lg", lang = "en" }: { size?: "sm" | "lg"
     <div className="flex flex-col items-center gap-3 sm:gap-4">
       <div className="relative">
         {size === "lg" && (
-          <div className="animate-pulse-ring absolute -inset-3 rounded-full bg-gradient-to-r from-sky-400/15 to-emerald-400/15" />
+          <div className="animate-pulse-ring absolute -inset-4 rounded-full" style={{ background: "radial-gradient(circle, rgba(201, 151, 62, 0.15), rgba(26, 138, 125, 0.1), transparent)" }} />
         )}
-        <Image
-          src="/alisher.jpg"
-          alt="Alisher Sadullaev"
-          width={dimensions}
-          height={dimensions}
-          className="relative rounded-full object-cover ring-2 ring-[var(--border)]"
-          priority={size === "lg"}
-        />
+        <div className={size === "lg" ? "avatar-ornament" : undefined}>
+          <Image
+            src="/alisher.jpg"
+            alt="Alisher Sadullaev"
+            width={dimensions}
+            height={dimensions}
+            className="relative rounded-full object-cover"
+            style={size === "sm" ? { border: "2px solid var(--border)" } : undefined}
+            priority={size === "lg"}
+          />
+        </div>
       </div>
       {size === "lg" ? (
         <div className="text-center">

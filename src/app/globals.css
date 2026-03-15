@@ -1,21 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --card: #f9fafb;
-  --user-bubble: #2563eb;
+  --background: #faf8f5;
+  --foreground: #1c1917;
+  --muted: #78716c;
+  --border: #d6cfc7;
+  --card: #f5f0eb;
+  --user-bubble: #1a5276;
   --user-text: #ffffff;
-  --ai-bubble: #f3f4f6;
-  --ai-text: #1a1a1a;
+  --ai-bubble: #f0ebe4;
+  --ai-text: #1c1917;
   --input-bg: #ffffff;
-  --input-border: #d1d5db;
-  --input-focus: #3b82f6;
+  --input-border: #c4bbb0;
+  --input-focus: #1a5276;
   --suggestion-bg: #ffffff;
-  --suggestion-hover: #f3f4f6;
-  --footer-bar: rgba(255, 255, 255, 0.85);
+  --suggestion-hover: #f0ebe4;
+  --footer-bar: rgba(250, 248, 245, 0.88);
+  --accent-gold: #c9973e;
+  --accent-blue: #1a5276;
+  --accent-turquoise: #1a8a7d;
+  --pattern-opacity: 0.04;
 }
 
 @theme inline {
@@ -25,21 +29,25 @@
 }
 
 [data-theme="dark"] {
-  --background: #0a0a0a;
-  --foreground: #f0f0f0;
-  --muted: #9ca3af;
-  --border: #2a2a2e;
-  --card: #141416;
-  --user-bubble: #2563eb;
+  --background: #0d1117;
+  --foreground: #e8e2d9;
+  --muted: #9c958c;
+  --border: #2a2520;
+  --card: #161b22;
+  --user-bubble: #1a5276;
   --user-text: #ffffff;
-  --ai-bubble: #1c1c20;
-  --ai-text: #e5e7eb;
-  --input-bg: #141416;
-  --input-border: #333338;
-  --input-focus: #3b82f6;
-  --suggestion-bg: #141416;
-  --suggestion-hover: #1c1c20;
-  --footer-bar: rgba(10, 10, 10, 0.85);
+  --ai-bubble: #1a1e24;
+  --ai-text: #ddd7ce;
+  --input-bg: #161b22;
+  --input-border: #342e28;
+  --input-focus: #c9973e;
+  --suggestion-bg: #161b22;
+  --suggestion-hover: #1e2430;
+  --footer-bar: rgba(13, 17, 23, 0.88);
+  --accent-gold: #c9973e;
+  --accent-blue: #3d8ec9;
+  --accent-turquoise: #2bb5a4;
+  --pattern-opacity: 0.035;
   color-scheme: dark;
 }
 
@@ -53,13 +61,18 @@ body {
   transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Subtle dot grid background */
+/* Uzbek geometric tilework pattern background */
 .chat-bg {
-  background-image: radial-gradient(circle, var(--border) 0.5px, transparent 0.5px);
-  background-size: 24px 24px;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%231a5276' stroke-width='0.5' opacity='0.06'%3E%3Cpath d='M30 0L60 30L30 60L0 30Z'/%3E%3Cpath d='M30 10L50 30L30 50L10 30Z'/%3E%3Ccircle cx='30' cy='30' r='6'/%3E%3Cpath d='M30 0v10M60 30h-10M30 60v-10M0 30h10'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 60px 60px;
 }
 
-/* Gradient accent glow behind hero */
+[data-theme="dark"] .chat-bg {
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23c9973e' stroke-width='0.5' opacity='0.04'%3E%3Cpath d='M30 0L60 30L30 60L0 30Z'/%3E%3Cpath d='M30 10L50 30L30 50L10 30Z'/%3E%3Ccircle cx='30' cy='30' r='6'/%3E%3Cpath d='M30 0v10M60 30h-10M30 60v-10M0 30h10'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 60px 60px;
+}
+
+/* Gradient accent glow — warm Uzbek tones */
 .hero-glow {
   position: relative;
 }
@@ -70,12 +83,12 @@ body {
   top: -60px;
   left: 50%;
   transform: translateX(-50%);
-  width: 320px;
-  height: 320px;
+  width: 360px;
+  height: 360px;
   background: radial-gradient(
     circle,
-    rgba(59, 130, 246, 0.08) 0%,
-    rgba(147, 51, 234, 0.05) 40%,
+    rgba(201, 151, 62, 0.1) 0%,
+    rgba(26, 82, 118, 0.06) 45%,
     transparent 70%
   );
   border-radius: 50%;
@@ -86,10 +99,58 @@ body {
 [data-theme="dark"] .hero-glow::before {
   background: radial-gradient(
     circle,
-    rgba(59, 130, 246, 0.12) 0%,
-    rgba(147, 51, 234, 0.08) 40%,
+    rgba(201, 151, 62, 0.14) 0%,
+    rgba(26, 138, 125, 0.08) 45%,
     transparent 70%
   );
+}
+
+/* Ornamental gold border strip */
+.uzbek-ornament {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--accent-gold) 15%,
+    var(--accent-gold) 85%,
+    transparent 100%
+  );
+  height: 2px;
+  opacity: 0.35;
+}
+
+/* Avatar ornamental ring — tilework-inspired */
+.avatar-ornament {
+  background: conic-gradient(
+    from 0deg,
+    var(--accent-gold),
+    var(--accent-turquoise),
+    var(--accent-blue),
+    var(--accent-gold),
+    var(--accent-turquoise),
+    var(--accent-blue),
+    var(--accent-gold)
+  );
+  padding: 3px;
+  border-radius: 50%;
+}
+
+/* Suggestion cards with subtle Uzbek corner motif */
+.uzbek-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.uzbek-card::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, transparent 50%, var(--accent-gold) 50%);
+  opacity: 0.15;
+  border-radius: 0 10px 0 0;
+  pointer-events: none;
 }
 
 /* Smooth scrollbar */
@@ -116,7 +177,7 @@ body {
   animation: fade-in 0.3s ease-out forwards;
 }
 
-/* Pulse ring for avatar */
+/* Pulse ring for avatar — gold tint */
 @keyframes pulse-ring {
   0% { transform: scale(0.95); opacity: 0.5; }
   50% { transform: scale(1); opacity: 0.3; }

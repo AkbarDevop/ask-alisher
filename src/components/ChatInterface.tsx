@@ -1044,7 +1044,7 @@ export function ChatInterface() {
         className="sticky top-0 z-10 backdrop-blur-xl"
         style={{
           background: "var(--footer-bar)",
-          borderBottom: "1px solid var(--border)",
+          borderBottom: "none",
           paddingTop: "env(safe-area-inset-top)",
         }}
       >
@@ -1151,6 +1151,7 @@ export function ChatInterface() {
           </div>
         </div>
       </header>
+      <div className="uzbek-ornament" />
 
       {/* Chat messages area */}
       <div ref={chatAreaRef} className="chat-bg flex-1 overflow-y-auto px-3 pb-28 pt-4 sm:px-4 sm:pb-32 sm:pt-6">
@@ -1259,14 +1260,15 @@ export function ChatInterface() {
       )}
 
       {/* Input area */}
-      <div
-        className="fixed bottom-0 left-0 right-0 backdrop-blur-xl"
-        style={{
-          background: "var(--footer-bar)",
-          borderTop: "1px solid var(--border)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
+      <div className="fixed bottom-0 left-0 right-0">
+        <div className="uzbek-ornament" />
+        <div
+          className="backdrop-blur-xl"
+          style={{
+            background: "var(--footer-bar)",
+            paddingBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
         <form
           onSubmit={handleSubmit}
           className="mx-auto flex max-w-2xl items-end gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 sm:py-3"
@@ -1345,6 +1347,7 @@ export function ChatInterface() {
           >
             Built by akbar.one
           </a>
+        </div>
         </div>
       </div>
     </div>

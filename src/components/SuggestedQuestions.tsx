@@ -24,7 +24,7 @@ export function SuggestedQuestions({ onSelect, lang }: SuggestedQuestionsProps) 
           <button
             key={question}
             onClick={() => onSelect(question)}
-            className="rounded-xl px-3.5 py-3 text-left text-[13px] leading-snug transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.97] sm:px-4 sm:py-3 sm:text-[13px]"
+            className="uzbek-card rounded-xl px-3.5 py-3 text-left text-[13px] leading-snug transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm active:scale-[0.97] sm:px-4 sm:py-3 sm:text-[13px]"
             style={{
               background: "var(--suggestion-bg)",
               color: "var(--muted)",
