@@ -51,8 +51,11 @@ export const metadata: Metadata = {
     images: ["/alisher.jpg"],
   },
   icons: {
-    icon: "/alisher.jpg",
-    apple: "/alisher.jpg",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.json",
 };
