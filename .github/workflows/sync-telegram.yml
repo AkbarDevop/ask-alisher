@@ -45,7 +45,7 @@ jobs:
         if: steps.cadence.outputs.run == 'true'
         run: npm ci
 
-      - name: Sync Telegram data into repo
+      - name: Sync alisher_sadullaev Telegram data
         if: steps.cadence.outputs.run == 'true'
         run: |
           if [ "${{ github.event.inputs.full_history }}" = "true" ]; then
@@ -54,7 +54,16 @@ jobs:
             npx tsx scripts/fetch-telegram-channel.ts --channel=alisher_sadullaev --max-pages=10
           fi
 
-      - name: Import Telegram data into Supabase
+      - name: Sync stanford_kundaligi Telegram data
+        if: steps.cadence.outputs.run == 'true'
+        run: |
+          if [ "${{ github.event.inputs.full_history }}" = "true" ]; then
+            npx tsx scripts/fetch-telegram-channel.ts --channel=stanford_kundaligi --all
+          else
+            npx tsx scripts/fetch-telegram-channel.ts --channel=stanford_kundaligi --max-pages=10
+          fi
+
+      - name: Import alisher_sadullaev into Supabase
         if: steps.cadence.outputs.run == 'true'
         env:
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
@@ -62,6 +71,15 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: npx tsx scripts/import-telegram-posts.ts --channel=alisher_sadullaev
+
+      - name: Import stanford_kundaligi into Supabase
+        if: steps.cadence.outputs.run == 'true'
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/import-telegram-posts.ts --channel=stanford_kundaligi
 
       - name: Commit updated Telegram snapshot
         if: steps.cadence.outputs.run == 'true'
