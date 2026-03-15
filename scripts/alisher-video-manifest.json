@@ -28,34 +28,6 @@
     "priority": "high"
   },
   {
-    "id": "eZWmh98Ex60",
-    "title": "Uyini sotgani, poytaxtga kelishi va hayotdagi printsipi haqida",
-    "channel": "Qalampir UZ",
-    "kind": "interview",
-    "priority": "high"
-  },
-  {
-    "id": "zFnSP_evOFg",
-    "title": "Qishloqqa ham kelasizmi, Alisher Sa'dullayev?",
-    "channel": "Alisher Sadullaev",
-    "kind": "talk",
-    "priority": "medium"
-  },
-  {
-    "id": "I9JhGpfrwog",
-    "title": "Nahotki Alisher aka?",
-    "channel": "Alisher Sadullaev",
-    "kind": "talk",
-    "priority": "medium"
-  },
-  {
-    "id": "BfcCoXlP83o",
-    "title": "1093",
-    "channel": "Alisher Sadullaev",
-    "kind": "talk",
-    "priority": "medium"
-  },
-  {
     "id": "FZXb80EAT9Y",
     "title": "Alisher Sadullaev wants to change his career? Who does he want to be?",
     "channel": "MuzaNigi",
@@ -85,24 +57,17 @@
   },
   {
     "id": "pNwwkNEuP0s",
-    "title": "Ayol-qizlarimiz o’qishi kerak!",
+    "title": "Ayol-qizlarimiz o'qishi kerak!",
     "channel": "Alisher Sadullayev",
     "kind": "talk",
     "priority": "high"
   },
   {
     "id": "3IthGNmlY1A",
-    "title": "Nodirbekning g’alabasi OAV nigohida",
+    "title": "Nodirbekning g'alabasi OAV nigohida",
     "channel": "Alisher Sadullayev",
     "kind": "talk",
     "priority": "medium"
-  },
-  {
-    "id": "3kWftrpyAAw",
-    "title": "Strategic Collaboration for Youth Development",
-    "channel": "Webster University in Tashkent Official",
-    "kind": "talk",
-    "priority": "high"
   },
   {
     "id": "OEvmI0j-c3U",
@@ -138,5 +103,61 @@
     "channel": "Alisher Sadullayev",
     "kind": "talk",
     "priority": "high"
+  },
+  {
+    "id": "1SWI95PaQZw",
+    "title": "Alisher Sa'dullayev bilan intervyu: Yangi agentlik bilan yoshlar muammolari yechiladimi?",
+    "channel": "KunUZ",
+    "kind": "interview",
+    "priority": "high"
+  },
+  {
+    "id": "7WLP51WLUXk",
+    "title": "Freelance istiqboli",
+    "channel": "MFaktorUz",
+    "kind": "panel",
+    "priority": "medium"
+  },
+  {
+    "id": "7mU0opVTVQA",
+    "title": "Professional ta'lim muassasalari va litseylarda Zakovat",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
+  },
+  {
+    "id": "8t_aUbZvTRE",
+    "title": "Yosh kitobxon 2024-yil",
+    "channel": "Alisher Sadullayev",
+    "kind": "event",
+    "priority": "medium"
+  },
+  {
+    "id": "AYMO5--MiI4",
+    "title": "Yoshlar bilan ishlash tizimi bo'yicha axborot berildi",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
+  },
+  {
+    "id": "gf9ZtULvdSc",
+    "title": "Prezident ham hayajonlanadigan payt bo'lar ekan",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
+  },
+  {
+    "id": "gzaEN4AV0J4",
+    "title": "Professor Oldiyevning 6 kun umri qoldimi?",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
+  },
+  {
+    "id": "oNzUoYhr7Ls",
+    "title": "FIDE Bosh Assambleyasi yig'ilishi 2022. 2-kun. Chennai, Hindiston",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "medium"
   }
 ]

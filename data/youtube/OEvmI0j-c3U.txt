@@ -2,7 +2,7 @@ Source: YouTube — Alisher Sadullaev on Alisher Sadullayev — "Strategik kuch"
 URL: https://www.youtube.com/watch?v=OEvmI0j-c3U
 Channel: Alisher Sadullayev
 Kind: talk
-Language: tr
+Language: uz
 
 bu çıkardık içlerinde kudretleri indir
 Coşkun liglerinde hiç kendi Kudret

@@ -2,7 +2,7 @@ Source: YouTube — Alisher Sadullaev on Jomboy yoshlar ishlari agentligi Javlon
 URL: https://www.youtube.com/watch?v=34ZWUYgRmSY
 Channel: Jomboy yoshlar ishlari agentligi Javlon Absamatov
 Kind: interview
-Language: tr
+Language: uz
 
 Ben
 Hasan Amerika nohutu zinciri uygun
