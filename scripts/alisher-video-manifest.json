@@ -159,5 +159,141 @@
     "channel": "Alisher Sadullayev",
     "kind": "talk",
     "priority": "medium"
+  },
+  {
+    "id": "vEGC64aYTaM",
+    "title": "Alisher Sa'dullayev: Alishmas qadriyatlarim",
+    "channel": "102 tv",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "zZbk4UQCDd4",
+    "title": "O'zbekistonni ENG YOSH siyosatchisi bilan New Yorkda suxbat",
+    "channel": "MrOtabekTV",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "0kusDjfefyM",
+    "title": "Startup Mix PR Corner discussion #3",
+    "channel": "Tech4Impact",
+    "kind": "panel",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "eZWmh98Ex60",
+    "title": "Alisher Sa'dullaev uyini sotgani, poytaxtga kelishi",
+    "channel": "Qalampir UZ",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "UnpIm2pfeWQ",
+    "title": "Uzbek senator on reforms and challenges",
+    "channel": "Amerika Ovozi",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "ZivDlBMbjac",
+    "title": "Samyy molodoy chinovnik v pravitelstve Uzbekistana",
+    "channel": "Informbyuro 31",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "WM_LfRWNqk0",
+    "title": "Xalq ta'limi vaziri o'rinbosarining 100 kunlik rejasi",
+    "channel": "Alisher Sadullayev",
+    "kind": "talk",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "46dvq8HcbOI",
+    "title": "Alisher Sa'dullayev - Yoshlar ishlari agentligi direktori",
+    "channel": "Sharof Rashidov YIA",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "GQPCPbgmQbk",
+    "title": "Alisher Sadullayev Bloger Otabek Sattoriy bo'yicha javob",
+    "channel": "Hayot Samarqandiy",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "SB1n5S03F4g",
+    "title": "Hokim pishirgan oshni nega fermer yeyishi kerak?",
+    "channel": "Kunuz News",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "3mNCihOd1GQ",
+    "title": "V NOBEL FEST ENG DAY 1",
+    "channel": "Nobel Fest",
+    "kind": "panel",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "i_az3b5Clkc",
+    "title": "Press Conference - FIDE World Rapid & Blitz 2023",
+    "channel": "FIDE chess",
+    "kind": "panel",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "wLTAs2UbLL8",
+    "title": "Milliy sertifikat olgan yigitning otasi bilan suhbat",
+    "channel": "KATTAKURGAN PRESS",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "aGlvCsOgP7M",
+    "title": "Shavkat Mirziyoyev yoshlar bilan muloqotda",
+    "channel": "Live Uzbekistan",
+    "kind": "event",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "wbckF9QSWqM",
+    "title": "Alisher Sadullayev - Suvni asrash burch!",
+    "channel": "Toshkent viloyati",
+    "kind": "talk",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "gTBcQCeRNaU",
+    "title": "Otnoshenie'dan reshenie'gacha - Sa'dullaev",
+    "channel": "Qalampir UZ",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
+  },
+  {
+    "id": "sxoi3qqcDF4",
+    "title": "Yoshlarga imtiyozli uylar berish tartibi o'zgarmoqda",
+    "channel": "KunUZ",
+    "kind": "interview",
+    "priority": "high",
+    "stt": "aisha"
   }
 ]
