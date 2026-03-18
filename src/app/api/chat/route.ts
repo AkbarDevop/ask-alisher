@@ -1535,7 +1535,7 @@ export async function POST(req: Request) {
         });
       }
 
-      if (uniqueSources.length >= 8) break;
+      if (uniqueSources.length >= 4) break;
     }
   }
 
