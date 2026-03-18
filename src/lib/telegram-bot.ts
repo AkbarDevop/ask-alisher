@@ -623,6 +623,14 @@ function buildTelegramSourceKeyboard(
   };
 }
 
+function buildQuickActionRow(language: Language) {
+  return [
+    { text: language === "uz" ? "Batafsil" : "More detail", callback_data: TELEGRAM_CALLBACK_MORE },
+    { text: language === "uz" ? "Qisqaroq" : "Shorter", callback_data: TELEGRAM_CALLBACK_SHORTER },
+    { text: language === "uz" ? "Misol" : "Example", callback_data: TELEGRAM_CALLBACK_EXAMPLE },
+  ];
+}
+
 export function formatTelegramAnswer(
   answer: string,
   sources: TelegramSource[],
@@ -633,10 +641,12 @@ export function formatTelegramAnswer(
   parseMode?: TelegramParseMode;
 } {
   const formattedAnswer = formatTelegramAnswerText(answer);
+  const quickActionRow = buildQuickActionRow(language);
 
   if (!sources.length || shouldSuppressTelegramSources(answer)) {
     return {
       text: formattedAnswer,
+      replyMarkup: { inline_keyboard: [quickActionRow] },
       parseMode: "HTML",
     };
   }
@@ -647,9 +657,16 @@ export function formatTelegramAnswer(
       : "<i>Sources are linked in the buttons below.</i>";
   const combined = `${formattedAnswer}\n\n${sourceHint}`;
 
+  const sourceRows = sources.map((source, index) => [
+    {
+      text: getTelegramSourceLabel(source, index, language),
+      url: source.url,
+    },
+  ]);
+
   return {
     text: combined.length <= TELEGRAM_MAX_MESSAGE_LENGTH ? combined : formattedAnswer,
-    replyMarkup: buildTelegramSourceKeyboard(sources, language),
+    replyMarkup: { inline_keyboard: [...sourceRows, quickActionRow] },
     parseMode: "HTML",
   };
 }
@@ -706,6 +723,29 @@ export function getTelegramRecentCommandPrompt(language: Language) {
   return language === "en"
     ? "Using only the freshest public Telegram posts, interviews, and talks from the most recent period in the corpus, tell me the 3 or 4 themes being emphasized right now. If the newest public material is older than expected, say the exact latest date instead of pretending it is recent."
     : "Faqat korpusdagi eng yangi ommaviy Telegram postlari, intervyular va chiqishlarga tayangan holda, hozir eng ko'p ta'kidlanayotgan 3-4 mavzuni ayting. Agar eng yangi ommaviy material kutilganidan eski bo'lsa, uni recent deb ko'rsatmay, aniq oxirgi sanani ayting.";
+}
+
+export function buildTelegramAboutText(language: Language) {
+  if (language === "en") {
+    return [
+      "<b>About Alisher Sadullaev</b>",
+      "",
+      "Senator of the Oliy Majlis of Uzbekistan, founder of the Youth Affairs Agency, chess advocate, and Stanford GSB Executive Education graduate.",
+      "",
+      "This bot is an AI clone that answers questions based on Alisher's public posts, interviews, talks, and speeches.",
+      "",
+      "It is not Alisher himself — answers are generated from publicly available materials.",
+    ].join("\n");
+  }
+  return [
+    "<b>Alisher Sadullaev haqida</b>",
+    "",
+    "O'zbekiston Oliy Majlisi senatori, Yoshlar ishlari agentligi asoschisi, shaxmat targ'ibotchisi, Stanford GSB Executive Education bitiruvchisi.",
+    "",
+    "Bu bot Alisherning ommaviy postlari, intervyulari, chiqishlari va nutqlari asosida savollarga javob beruvchi AI klondir.",
+    "",
+    "Bu Alisherning o'zi emas — javoblar ommaviy materiallar asosida yaratiladi.",
+  ].join("\n");
 }
 
 export function buildTelegramResetText(language: Language) {

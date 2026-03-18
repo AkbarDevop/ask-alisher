@@ -8,20 +8,30 @@ const DEFAULT_COMMANDS = [
   { command: "help", description: "Misollar va yo'riqnoma" },
   { command: "examples", description: "Savol g'oyalarini ko'rish" },
   { command: "recent", description: "So'nggi mavzularni ko'rish" },
+  { command: "about", description: "Alisher Sadullaev haqida" },
   { command: "new", description: "Suhbatni yangilash" },
 ];
 
-const ENGLISH_COMMANDS = [...DEFAULT_COMMANDS];
+const ENGLISH_COMMANDS = [
+  { command: "start", description: "Start the bot" },
+  { command: "help", description: "Examples and instructions" },
+  { command: "examples", description: "See question ideas" },
+  { command: "recent", description: "Latest topics" },
+  { command: "about", description: "About Alisher Sadullaev" },
+  { command: "new", description: "Start a new conversation" },
+];
 
 const DEFAULT_DESCRIPTION =
   "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive. Savol yuboring va javobni uning ommaviy postlari, intervyulari hamda chiqishlari asosida oling.";
 
-const ENGLISH_DESCRIPTION = DEFAULT_DESCRIPTION;
+const ENGLISH_DESCRIPTION =
+  "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive. Ask a question and get answers based on his public posts, interviews, and talks.";
 
 const DEFAULT_SHORT_DESCRIPTION =
   "Alisher Sadullaevning AI kloni — senator, yoshlar yetakchisi, shaxmat targ'ibotchisi, Stanford GSB Executive.";
 
-const ENGLISH_SHORT_DESCRIPTION = DEFAULT_SHORT_DESCRIPTION;
+const ENGLISH_SHORT_DESCRIPTION =
+  "AI clone of Alisher Sadullaev — senator, youth leader, chess advocate, Stanford GSB Executive.";
 
 function getRequiredEnv(name: string) {
   const value = process.env[name];

@@ -1,5 +1,6 @@
 import { consumeAskAlisherRateLimit } from "@/lib/rate-limit";
 import {
+  buildTelegramAboutText,
   buildTelegramExamplesText,
   answerTelegramCallbackQuery,
   buildTelegramHelpText,
@@ -345,6 +346,19 @@ export async function POST(req: Request) {
       text: buildTelegramExamplesText(),
     }).catch((error) => {
       console.error("Telegram /examples reply failed:", error);
+    });
+
+    return Response.json({ ok: true });
+  }
+
+  if (matchesCommand(text, "about")) {
+    await sendTelegramMessage({
+      chatId,
+      replyToMessageId: message.message_id,
+      text: buildTelegramAboutText("uz"),
+      parseMode: "HTML",
+    }).catch((error) => {
+      console.error("Telegram /about reply failed:", error);
     });
 
     return Response.json({ ok: true });
