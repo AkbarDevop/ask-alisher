@@ -9,6 +9,7 @@ const DEFAULT_COMMANDS = [
   { command: "examples", description: "Savol g'oyalarini ko'rish" },
   { command: "recent", description: "So'nggi mavzularni ko'rish" },
   { command: "about", description: "Alisher Sadullaev haqida" },
+  { command: "lang", description: "Tilni o'zgartirish" },
   { command: "new", description: "Suhbatni yangilash" },
 ];
 
@@ -18,6 +19,7 @@ const ENGLISH_COMMANDS = [
   { command: "examples", description: "See question ideas" },
   { command: "recent", description: "Latest topics" },
   { command: "about", description: "About Alisher Sadullaev" },
+  { command: "lang", description: "Change language" },
   { command: "new", description: "Start a new conversation" },
 ];
 

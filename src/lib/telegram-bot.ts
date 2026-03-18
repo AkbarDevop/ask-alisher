@@ -36,6 +36,8 @@ const TELEGRAM_CALLBACK_SHORTER = "tg:short";
 const TELEGRAM_CALLBACK_EXAMPLE = "tg:example";
 const TELEGRAM_CALLBACK_FEEDBACK_UP = "tg:fb:up";
 const TELEGRAM_CALLBACK_FEEDBACK_DOWN = "tg:fb:down";
+const TELEGRAM_CALLBACK_LANG_UZ = "tg:lang:uz";
+const TELEGRAM_CALLBACK_LANG_EN = "tg:lang:en";
 
 function getSupabaseServiceRoleClient() {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -623,14 +625,6 @@ function buildTelegramSourceKeyboard(
   };
 }
 
-function buildQuickActionRow(language: Language) {
-  return [
-    { text: language === "uz" ? "Batafsil" : "More detail", callback_data: TELEGRAM_CALLBACK_MORE },
-    { text: language === "uz" ? "Qisqaroq" : "Shorter", callback_data: TELEGRAM_CALLBACK_SHORTER },
-    { text: language === "uz" ? "Misol" : "Example", callback_data: TELEGRAM_CALLBACK_EXAMPLE },
-  ];
-}
-
 export function formatTelegramAnswer(
   answer: string,
   sources: TelegramSource[],
@@ -641,12 +635,10 @@ export function formatTelegramAnswer(
   parseMode?: TelegramParseMode;
 } {
   const formattedAnswer = formatTelegramAnswerText(answer);
-  const quickActionRow = buildQuickActionRow(language);
 
   if (!sources.length || shouldSuppressTelegramSources(answer)) {
     return {
       text: formattedAnswer,
-      replyMarkup: { inline_keyboard: [quickActionRow] },
       parseMode: "HTML",
     };
   }
@@ -657,16 +649,9 @@ export function formatTelegramAnswer(
       : "<i>Sources are linked in the buttons below.</i>";
   const combined = `${formattedAnswer}\n\n${sourceHint}`;
 
-  const sourceRows = sources.map((source, index) => [
-    {
-      text: getTelegramSourceLabel(source, index, language),
-      url: source.url,
-    },
-  ]);
-
   return {
     text: combined.length <= TELEGRAM_MAX_MESSAGE_LENGTH ? combined : formattedAnswer,
-    replyMarkup: { inline_keyboard: [...sourceRows, quickActionRow] },
+    replyMarkup: buildTelegramSourceKeyboard(sources, language),
     parseMode: "HTML",
   };
 }
@@ -688,6 +673,7 @@ export function buildTelegramWelcomeText(siteUrl: string, language: Language = "
       "/new — start a new conversation",
       "/help — examples and instructions",
       "/about — about Alisher Sadullaev",
+      "/lang — change language",
       "",
       `Web version: ${siteUrl}`,
     ].join("\n");
@@ -708,6 +694,7 @@ export function buildTelegramWelcomeText(siteUrl: string, language: Language = "
     "/new — suhbatni yangidan boshlash",
     "/help — misollar va yo'riqnoma",
     "/about — Alisher Sadullaev haqida",
+    "/lang — tilni o'zgartirish",
     "",
     `Web versiya: ${siteUrl}`,
   ].join("\n");
@@ -727,6 +714,7 @@ export function buildTelegramHelpText(siteUrl: string, language: Language = "uz"
       "/examples — question ideas",
       "/recent — latest topics summary",
       "/about — about Alisher Sadullaev",
+      "/lang — change language",
       "/new — clear history and start fresh",
       "",
       "Answers are based on public posts, interviews, and talks.",
@@ -743,9 +731,10 @@ export function buildTelegramHelpText(siteUrl: string, language: Language = "uz"
     "• Davlat xizmati va yoshlar bilan ishlash o'rtasida balansni qanday tutasiz?",
     "",
     "/examples — savol g'oyalari",
-    "/recent — so'nggi mavzular bo'yicha qisqa jamlanma",
+    "/recent — so'nggi mavzular",
     "/about — Alisher Sadullaev haqida",
-    "/new — suhbatni tozalaydi va yangidan boshlaydi",
+    "/lang — tilni o'zgartirish",
+    "/new — suhbatni yangidan boshlash",
     "",
     "Javoblar ommaviy postlar, intervyular va chiqishlarga tayangan holda beriladi.",
     `Web versiya: ${siteUrl}`,
@@ -770,6 +759,43 @@ export function getTelegramRecentCommandPrompt(language: Language) {
   return language === "en"
     ? "Using only the freshest public Telegram posts, interviews, and talks from the most recent period in the corpus, tell me the 3 or 4 themes being emphasized right now. If the newest public material is older than expected, say the exact latest date instead of pretending it is recent."
     : "Faqat korpusdagi eng yangi ommaviy Telegram postlari, intervyular va chiqishlarga tayangan holda, hozir eng ko'p ta'kidlanayotgan 3-4 mavzuni ayting. Agar eng yangi ommaviy material kutilganidan eski bo'lsa, uni recent deb ko'rsatmay, aniq oxirgi sanani ayting.";
+}
+
+export function isTelegramLanguageAction(data: string) {
+  return data === TELEGRAM_CALLBACK_LANG_UZ || data === TELEGRAM_CALLBACK_LANG_EN;
+}
+
+export function getTelegramLanguageFromCallback(data: string): Language | null {
+  if (data === TELEGRAM_CALLBACK_LANG_UZ) return "uz";
+  if (data === TELEGRAM_CALLBACK_LANG_EN) return "en";
+  return null;
+}
+
+export function buildTelegramLanguagePickerText(language: Language): {
+  text: string;
+  replyMarkup: TelegramReplyMarkup;
+} {
+  const text = language === "en"
+    ? "Choose your language:"
+    : "Tilni tanlang:";
+
+  return {
+    text,
+    replyMarkup: {
+      inline_keyboard: [
+        [
+          { text: "O'zbekcha", callback_data: TELEGRAM_CALLBACK_LANG_UZ },
+          { text: "English", callback_data: TELEGRAM_CALLBACK_LANG_EN },
+        ],
+      ],
+    },
+  };
+}
+
+export function buildTelegramLanguageConfirmText(language: Language) {
+  return language === "en"
+    ? "Language set to English."
+    : "Til o'zbekchaga o'zgartirildi.";
 }
 
 export function buildTelegramAboutText(language: Language) {

@@ -2,6 +2,8 @@ import { consumeAskAlisherRateLimit } from "@/lib/rate-limit";
 import {
   buildTelegramAboutText,
   buildTelegramExamplesText,
+  buildTelegramLanguageConfirmText,
+  buildTelegramLanguagePickerText,
   answerTelegramCallbackQuery,
   buildTelegramHelpText,
   buildTelegramNonTextReply,
@@ -13,10 +15,12 @@ import {
   fetchTelegramConversation,
   formatTelegramAnswer,
   getTelegramFeedbackValue,
+  getTelegramLanguageFromCallback,
   getTelegramMessageLanguage,
   getTelegramQuickActionPrompt,
   getTelegramWebhookSecret,
   isTelegramFeedbackAction,
+  isTelegramLanguageAction,
   isTelegramQuickAction,
   requestAskAlisherReply,
   sendTelegramMessage,
@@ -288,6 +292,41 @@ export async function POST(req: Request) {
       return Response.json({ ok: true });
     }
 
+    if (isTelegramLanguageAction(callbackQuery.data)) {
+      const chosenLang = getTelegramLanguageFromCallback(callbackQuery.data);
+
+      if (chosenLang) {
+        await storeTelegramTurn({
+          chatId,
+          role: "user",
+          text: chosenLang === "en" ? "Switch to English" : "O'zbekchaga o'tkazish",
+          language: chosenLang,
+          telegramUserId: callbackQuery.from?.id,
+          telegramUsername: callbackQuery.from?.username,
+          telegramFirstName: callbackQuery.from?.first_name,
+          metadata: { source: "lang_switch" },
+        }).catch((error) => {
+          console.error("Telegram language switch store failed:", error);
+        });
+
+        await answerTelegramCallbackQuery({
+          callbackQueryId: callbackQuery.id,
+          text: buildTelegramLanguageConfirmText(chosenLang),
+        }).catch((error) => {
+          console.error("Telegram language callback answer failed:", error);
+        });
+
+        await sendTelegramMessage({
+          chatId,
+          text: buildTelegramLanguageConfirmText(chosenLang),
+        }).catch((error) => {
+          console.error("Telegram language confirm message failed:", error);
+        });
+      }
+
+      return Response.json({ ok: true });
+    }
+
     await answerTelegramCallbackQuery({
       callbackQueryId: callbackQuery.id,
     }).catch((error) => {
@@ -366,6 +405,20 @@ export async function POST(req: Request) {
       parseMode: "HTML",
     }).catch((error) => {
       console.error("Telegram /about reply failed:", error);
+    });
+
+    return Response.json({ ok: true });
+  }
+
+  if (matchesCommand(text, "lang")) {
+    const picker = buildTelegramLanguagePickerText(lang);
+    await sendTelegramMessage({
+      chatId,
+      replyToMessageId: message.message_id,
+      text: picker.text,
+      replyMarkup: picker.replyMarkup,
+    }).catch((error) => {
+      console.error("Telegram /lang reply failed:", error);
     });
 
     return Response.json({ ok: true });
