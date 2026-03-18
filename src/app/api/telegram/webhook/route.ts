@@ -35,6 +35,7 @@ type TelegramActor = {
   is_bot?: boolean;
   username?: string;
   first_name?: string;
+  language_code?: string;
 };
 
 type TelegramMessage = {
@@ -59,6 +60,10 @@ type TelegramUpdate = {
 
 function matchesCommand(text: string, command: string) {
   return new RegExp(`^/${command}(?:@\\w+)?\\b`, "iu").test(text.trim());
+}
+
+function getActorLanguage(actor?: TelegramActor): "uz" | "en" {
+  return actor?.language_code === "en" ? "en" : "uz";
 }
 
 function getPublicSiteUrl(req: Request) {
@@ -304,13 +309,15 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramNonTextReply("uz"),
+      text: buildTelegramNonTextReply(getActorLanguage(message.from)),
     }).catch((error) => {
       console.error("Telegram non-text reply failed:", error);
     });
 
     return Response.json({ ok: true });
   }
+
+  const lang = getActorLanguage(message.from);
 
   if (matchesCommand(text, "start")) {
     await clearTelegramHistory(chatId).catch((error) => {
@@ -319,7 +326,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramWelcomeText(siteUrl),
+      text: buildTelegramWelcomeText(siteUrl, lang),
     }).catch((error) => {
       console.error("Telegram /start reply failed:", error);
     });
@@ -331,7 +338,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramHelpText(siteUrl),
+      text: buildTelegramHelpText(siteUrl, lang),
     }).catch((error) => {
       console.error("Telegram /help reply failed:", error);
     });
@@ -343,7 +350,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramExamplesText(),
+      text: buildTelegramExamplesText(lang),
     }).catch((error) => {
       console.error("Telegram /examples reply failed:", error);
     });
@@ -355,7 +362,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramAboutText("uz"),
+      text: buildTelegramAboutText(lang),
       parseMode: "HTML",
     }).catch((error) => {
       console.error("Telegram /about reply failed:", error);
@@ -367,13 +374,13 @@ export async function POST(req: Request) {
   if (matchesCommand(text, "recent")) {
     await handleTelegramConversationTurn({
       chatId,
-      text: getTelegramRecentCommandPrompt("uz"),
+      text: getTelegramRecentCommandPrompt(lang),
       replyToMessageId: message.message_id,
       actor: message.from,
       requestOrigin,
       source: "quick_action",
       quickAction: "command_recent",
-      fallbackLanguage: "uz",
+      fallbackLanguage: lang,
       useHistory: false,
     });
 
@@ -387,7 +394,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramResetText("uz"),
+      text: buildTelegramResetText(lang),
     }).catch((error) => {
       console.error("Telegram /new reply failed:", error);
     });

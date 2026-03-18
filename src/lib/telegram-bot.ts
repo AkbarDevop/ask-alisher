@@ -671,49 +671,96 @@ export function formatTelegramAnswer(
   };
 }
 
-export function buildTelegramWelcomeText(siteUrl: string) {
+export function buildTelegramWelcomeText(siteUrl: string, language: Language = "uz") {
+  if (language === "en") {
+    return [
+      "Hello! I'm the Ask Alisher Sadullaev bot.",
+      "",
+      "Send me a question. I answer based on Alisher Sadullaev's public posts, interviews, and talks.",
+      "",
+      "Try asking:",
+      "• What is Marra on Mutolaa and how did the reading competition go?",
+      "• What did you find at the Digital Hub in Andijon?",
+      "• What does chess teach young people?",
+      "• What mistakes do young founders make most often?",
+      "",
+      "Commands:",
+      "/new — start a new conversation",
+      "/help — examples and instructions",
+      "/about — about Alisher Sadullaev",
+      "",
+      `Web version: ${siteUrl}`,
+    ].join("\n");
+  }
   return [
-    "Assalomu alaykum. Men Ask Alisher Sadullaev botiman.",
+    "Assalomu alaykum! Men Ask Alisher Sadullaev botiman.",
     "",
     "Savolingizni yuboring. Men Alisher Sadullaevning ommaviy postlari, intervyulari va chiqishlari asosida javob beraman.",
-    "Xohlasangiz, savolni inglizcha ham yozishingiz mumkin.",
+    "Inglizcha ham yozishingiz mumkin.",
     "",
-    "Masalan, shularni so'rab ko'ring:",
-    "• Yosh founderlar eng ko'p qanday xato qiladi?",
-    "• Hududlardagi yoshlar uchun qaysi imkoniyatlar eng muhim?",
+    "Masalan:",
+    "• Mutolaa'dagi Marra nima va kitobxonlar musobaqasi qanday o'tdi?",
+    "• Hududlardagi Yoshlar markazlari nimalarni o'z ichiga oladi?",
     "• Shaxmat yoshlar uchun nimani o'rgatadi?",
+    "• Yosh founderlar eng ko'p qanday xato qiladi?",
     "",
     "Buyruqlar:",
     "/new — suhbatni yangidan boshlash",
     "/help — misollar va yo'riqnoma",
+    "/about — Alisher Sadullaev haqida",
     "",
     `Web versiya: ${siteUrl}`,
   ].join("\n");
 }
 
-export function buildTelegramHelpText(siteUrl: string) {
+export function buildTelegramHelpText(siteUrl: string, language: Language = "uz") {
+  if (language === "en") {
+    return [
+      "Send your question as plain text. You can write in Uzbek or English.",
+      "",
+      "Good examples:",
+      "• What is Marra and how did 9,000 readers join a single reading challenge?",
+      "• Why are you visiting so many regions lately?",
+      "• What mistakes do young founders make most often?",
+      "• How do you balance public service and youth work?",
+      "",
+      "/examples — question ideas",
+      "/recent — latest topics summary",
+      "/about — about Alisher Sadullaev",
+      "/new — clear history and start fresh",
+      "",
+      "Answers are based on public posts, interviews, and talks.",
+      `Web version: ${siteUrl}`,
+    ].join("\n");
+  }
   return [
     "Savolni oddiy matn ko'rinishida yuboring. O'zbekcha ham, inglizcha ham yozishingiz mumkin.",
     "",
     "Yaxshi ishlaydigan misollar:",
+    "• Mutolaa'dagi Marra nima va 9000 kitobxon qanday birlashdi?",
+    "• Nega so'nggi paytda ko'p hududlarga borayapsiz?",
     "• Yosh founderlar eng ko'p qanday xato qiladi?",
-    "• Shaxmat yoshlar uchun nimani o'rgatadi?",
-    "• Hududlardagi yoshlar uchun qaysi imkoniyatlar eng muhim?",
     "• Davlat xizmati va yoshlar bilan ishlash o'rtasida balansni qanday tutasiz?",
     "",
-    "/examples — yangi savol g'oyalari",
+    "/examples — savol g'oyalari",
     "/recent — so'nggi mavzular bo'yicha qisqa jamlanma",
-    "Javoblar ommaviy postlar, intervyular va chiqishlarga tayangan holda beriladi.",
+    "/about — Alisher Sadullaev haqida",
     "/new — suhbatni tozalaydi va yangidan boshlaydi",
+    "",
+    "Javoblar ommaviy postlar, intervyular va chiqishlarga tayangan holda beriladi.",
     `Web versiya: ${siteUrl}`,
   ].join("\n");
 }
 
-export function buildTelegramExamplesText() {
-  const sampleQuestions = SUGGESTED_QUESTIONS.uz.slice(0, 8);
+export function buildTelegramExamplesText(language: Language = "uz") {
+  const sampleQuestions = SUGGESTED_QUESTIONS[language].slice(0, 8);
+
+  const heading = language === "en"
+    ? "Here are some good question ideas:"
+    : "Mana bir nechta yaxshi savol g'oyalari:";
 
   return [
-    "Mana bir nechta yaxshi savol g'oyalari:",
+    heading,
     "",
     ...sampleQuestions.map((question) => `• ${question}`),
   ].join("\n");
