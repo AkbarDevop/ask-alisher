@@ -352,17 +352,9 @@ export async function POST(req: Request) {
     return Response.json({ ok: true });
   }
 
-  // Fetch stored language preference (set via /lang), default to "uz"
-  const conversationState = await fetchTelegramConversation(chatId, 10).catch((error) => {
-    console.error("Telegram conversation fetch failed:", error);
-    return { messages: [], language: "uz" as const };
-  });
-  const lang = conversationState.language;
-
+  // Handle /start before fetching conversation to respond fast and avoid
+  // Telegram webhook retries that cause duplicate welcome messages.
   if (matchesCommand(text, "start")) {
-    await clearTelegramHistory(chatId).catch((error) => {
-      console.error("Telegram history reset on /start failed:", error);
-    });
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
@@ -371,8 +363,19 @@ export async function POST(req: Request) {
       console.error("Telegram /start reply failed:", error);
     });
 
+    await clearTelegramHistory(chatId).catch((error) => {
+      console.error("Telegram history reset on /start failed:", error);
+    });
+
     return Response.json({ ok: true });
   }
+
+  // Fetch stored language preference (set via /lang), default to "uz"
+  const conversationState = await fetchTelegramConversation(chatId, 10).catch((error) => {
+    console.error("Telegram conversation fetch failed:", error);
+    return { messages: [], language: "uz" as const };
+  });
+  const lang = conversationState.language;
 
   if (matchesCommand(text, "help")) {
     await sendTelegramMessage({
