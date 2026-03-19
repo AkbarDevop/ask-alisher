@@ -56,5 +56,9 @@ next-env.d.ts
 # Local Netlify folder
 .netlify
 
+# gstack compiled binaries (rebuilt via ./setup)
+.claude/skills/gstack/browse/dist/
+.claude/skills/gstack/node_modules/
+
 # Supabase local state
 supabase/.temp
