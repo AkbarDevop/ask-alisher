@@ -66,10 +66,6 @@ function matchesCommand(text: string, command: string) {
   return new RegExp(`^/${command}(?:@\\w+)?\\b`, "iu").test(text.trim());
 }
 
-function getActorLanguage(actor?: TelegramActor): "uz" | "en" {
-  return actor?.language_code === "en" ? "en" : "uz";
-}
-
 function getPublicSiteUrl(req: Request) {
   return (process.env.SITE_URL || new URL(req.url).origin).replace(/\/$/, "");
 }
@@ -348,7 +344,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramNonTextReply(getActorLanguage(message.from)),
+      text: buildTelegramNonTextReply("uz"),
     }).catch((error) => {
       console.error("Telegram non-text reply failed:", error);
     });
@@ -356,7 +352,12 @@ export async function POST(req: Request) {
     return Response.json({ ok: true });
   }
 
-  const lang = getActorLanguage(message.from);
+  // Fetch stored language preference (set via /lang), default to "uz"
+  const conversationState = await fetchTelegramConversation(chatId, 10).catch((error) => {
+    console.error("Telegram conversation fetch failed:", error);
+    return { messages: [], language: "uz" as const };
+  });
+  const lang = conversationState.language;
 
   if (matchesCommand(text, "start")) {
     await clearTelegramHistory(chatId).catch((error) => {
@@ -365,7 +366,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramWelcomeText(siteUrl, lang),
+      text: buildTelegramWelcomeText(siteUrl, "uz"),
     }).catch((error) => {
       console.error("Telegram /start reply failed:", error);
     });
@@ -447,7 +448,7 @@ export async function POST(req: Request) {
     await sendTelegramMessage({
       chatId,
       replyToMessageId: message.message_id,
-      text: buildTelegramResetText(lang),
+      text: buildTelegramResetText("uz"),
     }).catch((error) => {
       console.error("Telegram /new reply failed:", error);
     });
