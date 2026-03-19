@@ -821,7 +821,7 @@ export function buildTelegramAboutText(language: Language) {
     "",
     "Bu Alisher Sadullaevning o'zi emas — javoblar ommaviy materiallar asosida yaratiladi.",
     "",
-    "Yaratuvchi: akbar.one",
+    "akbar.one tomonidan yaratilgan",
   ].join("\n");
 }
 
