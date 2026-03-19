@@ -139,7 +139,7 @@ async function main() {
   await telegramCall("setChatMenuButton", {
     menu_button: {
       type: "web_app",
-      text: "Ask Alisher",
+      text: "Ask Alisher Sadullaev",
       web_app: {
         url: siteUrl,
       },

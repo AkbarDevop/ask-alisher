@@ -805,9 +805,9 @@ export function buildTelegramAboutText(language: Language) {
       "",
       "Senator of the Oliy Majlis of Uzbekistan, founder of the Youth Affairs Agency, chess advocate, and Stanford GSB Executive Education graduate.",
       "",
-      "This bot is an AI clone that answers questions based on Alisher's public posts, interviews, talks, and speeches.",
+      "This bot is an AI clone that answers questions based on Alisher Sadullaev's public posts, interviews, talks, and speeches.",
       "",
-      "It is not Alisher himself — answers are generated from publicly available materials.",
+      "It is not Alisher Sadullaev himself — answers are generated from publicly available materials.",
     ].join("\n");
   }
   return [
@@ -815,9 +815,9 @@ export function buildTelegramAboutText(language: Language) {
     "",
     "O'zbekiston Oliy Majlisi senatori, Yoshlar ishlari agentligi asoschisi, shaxmat targ'ibotchisi, Stanford GSB Executive Education bitiruvchisi.",
     "",
-    "Bu bot Alisherning ommaviy postlari, intervyulari, chiqishlari va nutqlari asosida savollarga javob beruvchi AI klondir.",
+    "Bu bot Alisher Sadullaevning ommaviy postlari, intervyulari, chiqishlari va nutqlari asosida savollarga javob beruvchi AI klondir.",
     "",
-    "Bu Alisherning o'zi emas — javoblar ommaviy materiallar asosida yaratiladi.",
+    "Bu Alisher Sadullaevning o'zi emas — javoblar ommaviy materiallar asosida yaratiladi.",
   ].join("\n");
 }
 
