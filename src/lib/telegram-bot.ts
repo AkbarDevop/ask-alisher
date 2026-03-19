@@ -808,6 +808,8 @@ export function buildTelegramAboutText(language: Language) {
       "This bot is an AI clone that answers questions based on Alisher Sadullaev's public posts, interviews, talks, and speeches.",
       "",
       "It is not Alisher Sadullaev himself — answers are generated from publicly available materials.",
+      "",
+      "Built by akbar.one",
     ].join("\n");
   }
   return [
@@ -818,6 +820,8 @@ export function buildTelegramAboutText(language: Language) {
     "Bu bot Alisher Sadullaevning ommaviy postlari, intervyulari, chiqishlari va nutqlari asosida savollarga javob beruvchi AI klondir.",
     "",
     "Bu Alisher Sadullaevning o'zi emas — javoblar ommaviy materiallar asosida yaratiladi.",
+    "",
+    "Yaratuvchi: akbar.one",
   ].join("\n");
 }
 
